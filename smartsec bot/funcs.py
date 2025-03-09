@@ -14,8 +14,23 @@ def ask_mistral(prompt):
 
     response = requests.post(url, json=data, headers=headers)
     # return response['choices'][0]['message']['content']
-    return response.text.split('content')[1]
+    return (response.text.split('content')[1].split('finish_reason')[0])[3:-5]
 
+def processing_response(response):
+    # response = response.replace('\n\n', '<br>')
+    response = response.replace('.', '\\.')
+    response = response.replace("_", "\\_")
+    response = response.replace("-", "\\-")
+    # response = response.replace("*", "\\*")
+    response = response.replace("#", "\\#")
+    response = response.replace("[", "\\[")
+    response = response.replace("(", "\\(")
+    response = response.replace(")", "\\)")
+    response = response.replace("<", "\\<")
+    response = response.replace(">", "\\>")
+    response = response.replace("`", "\\`")
+
+    return response
 
 # user_message = 'Как обеспечить защиту домашнего роутера?'
 # user_message2 = 'Какие существубт протоколы шифрования?'
