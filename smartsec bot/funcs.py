@@ -22,13 +22,24 @@ def processing_response(response):
     response = response.replace("_", "\\_")
     response = response.replace("-", "\\-")
     # response = response.replace("*", "\\*")
-    response = response.replace("#", "\\#")
+    # response = response.replace("#", "\\#")
     response = response.replace("[", "\\[")
     response = response.replace("(", "\\(")
     response = response.replace(")", "\\)")
     response = response.replace("<", "\\<")
     response = response.replace(">", "\\>")
     response = response.replace("`", "\\`")
+
+    lines = response.split('\n')
+
+    # Проходим по каждой строке
+    for i in range(len(lines)):
+        # Заменяем все символы # на *
+        if '#' in lines[i]:
+            lines[i] = lines[i].replace('###', '*') + '*'
+
+    # Собираем строки обратно в текст с символами новой строки
+    response = '\n'.join(lines)
 
     return response
 
