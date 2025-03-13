@@ -14,10 +14,11 @@ def ask_mistral(prompt):
 
     response = requests.post(url, json=data, headers=headers)
     # return response['choices'][0]['message']['content']
-    return (response.text.split('content')[1].split('finish_reason')[0])[3:-5]
+    response_text = eval(response.text.replace('null', "None"))['choices'][0]['message']['content']
+    return response_text
 
 def processing_response(response):
-    # response = response.replace('\n\n', '<br>')
+    # TODO реализовать через регулярки
     response = response.replace('.', '\\.')
     response = response.replace("_", "\\_")
     response = response.replace("-", "\\-")
@@ -29,15 +30,15 @@ def processing_response(response):
     response = response.replace("<", "\\<")
     response = response.replace(">", "\\>")
     response = response.replace("`", "\\`")
+    response = response.replace("!", "\\!")
+    response = response.replace("**", "*")
 
     lines = response.split('\n')
-
     # Проходим по каждой строке
     for i in range(len(lines)):
         # Заменяем все символы # на *
         if '#' in lines[i]:
             lines[i] = lines[i].replace('###', '*') + '*'
-
     # Собираем строки обратно в текст с символами новой строки
     response = '\n'.join(lines)
 
