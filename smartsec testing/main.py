@@ -1,20 +1,14 @@
 import telebot
-import psycopg2
 from telebot import types
 
-from constants import TELEGRAM_BOT_TOKEN, PG_DBNAME, PG_USER, PG_PASSWORD, PG_HOST, PG_PORT
+from database_connection import DatabaseCursor
+from constants import TELEGRAM_BOT_TOKEN
 from funcs import delete_ReplyKeyboard
 
 
 bot = telebot.TeleBot(TELEGRAM_BOT_TOKEN)
 active_quizzes : dict[str:types.Poll] = dict()
-conn = psycopg2.connect(
-    dbname=PG_DBNAME,
-    user=PG_USER,
-    password=PG_PASSWORD,
-    host=PG_HOST,
-    port=PG_PORT
-)
+
 
 # Обработчик события при получении команды start
 @bot.message_handler(commands=['start'])
@@ -36,31 +30,28 @@ def dialog(message):
         # Бот смотрит на полученные сообщения и в зависимости от них отвечает
         match message.text:
             case '1':
+                with DatabaseCursor() as cursor:
+                    # TODO добавить поле explanation
+                    cursor.execute("SELECT * FROM questions LIMIT 1;")
+                    question = cursor.fetchone()
+                    question_id = question[0]
+                    question_text = question[1]
+                    cursor.execute(
+                        f"""
+                            SELECT a.text, ar.is_correct 
+                              FROM answer_results ar left join answers a 
+                                ON ar.answer_id = a.id
+                             WHERE ar.question_id = {question_id};
+                        """
+                    )
+                    answers = cursor.fetchall()
 
-                cur = conn.cursor()
-                cur.execute("SELECT * FROM questions;")
-                question = cur.fetchone()
-                question_id = question[0]
-                question_text = question[1]
-                cur.execute(
-                    f"""
-                        SELECT a.text, ar.is_correct 
-                          FROM answer_results ar left join answers a 
-                            ON ar.answer_id = a.id
-                         WHERE ar.question_id = {question_id};
-                    """
-                )
-                answers = cur.fetchall()
                 answers_text = []
                 correct_answer = None
                 for index, (answer, is_correct) in enumerate(answers):
                     answers_text.append(answer)
                     if is_correct:
                         correct_answer = index
-
-                conn.commit()
-                cur.close()
-                # conn.close()
 
                 poll_message = bot.send_poll(
                     message.chat.id,
@@ -102,14 +93,14 @@ def handle_poll_answer(quiz_answer: types.PollAnswer):
                     {is_correct_answer}
                 )
         '''
-        cur = conn.cursor()
-        cur.execute(query)
-        conn.commit()
+        with DatabaseCursor() as cursor:
+            cursor.execute(query)
         bot.send_message(
             quiz_answer.user.id,
             "Ответ записан"
         )
+        del active_quizzes[quiz_answer.user.username]
 
-print('START')
+print('BOT IS STARTED')
 # Заставляет бота работать бесперебойно(пока на машине запущен код)
 bot.polling(none_stop=True)
