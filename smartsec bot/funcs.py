@@ -52,16 +52,19 @@ class TGHelpBot(telebot.TeleBot):
         )
 
     @staticmethod
-    def ask_mistral(prompt) -> str:
+    def ask_mistral(prompt: str) -> str:
         url = "https://api.mistral.ai/v1/chat/completions"
         headers = {"Authorization": f"Bearer {MISTRAL_API_KEY}", "Content-Type": "application/json"}
         data = {
-            "model": "mistral-small-latest",  # Или "mistral-small" для более дешёвых запросов
+            "model": "mistral-large-latest",  # Или "mistral-small" для более дешёвых запросов
             "messages": [{"role": "user", "content": prompt}]
         }
         response = requests.post(url, json=data, headers=headers)
         # return response['choices'][0]['message']['content']
-        response_text = eval(response.text.replace('null', "None"))['choices'][0]['message']['content']
+        if response.status_code == 200:
+            response_text = eval(response.text.replace('null', "None"))['choices'][0]['message']['content']
+        else:
+            response_text = "Ошибка на стороне сервера.\nУже исправляем!"
         return response_text
 
     @staticmethod
