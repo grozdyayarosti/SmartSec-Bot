@@ -1,3 +1,4 @@
+import random
 from typing import Any
 
 import psycopg2
@@ -26,7 +27,8 @@ class Database:
         self.conn.close()
 
     def get_quiz_question_data(self) -> dict[str: str]:
-        self.cursor.execute("SELECT * FROM questions LIMIT 1;")
+        random_number = random.randint(1, 3)
+        self.cursor.execute(f"SELECT * FROM questions WHERE id={random_number};")
         question = self.cursor.fetchone()
         return {"question_id": question[0],
                 "question_text": question[1],
@@ -37,8 +39,9 @@ class Database:
         self.cursor.execute(
             f"""
                 SELECT a.text, ar.is_correct 
-                  FROM answer_results ar left join answers a 
-                    ON ar.answer_id = a.id
+                  FROM answer_results ar 
+                       LEFT JOIN answers a 
+                            ON ar.answer_id = a.id
                  WHERE ar.question_id = {question_id};
             """
         )
@@ -49,19 +52,15 @@ class Database:
         date = datetime.date.today()
         query = f'''
             INSERT INTO testing_results(user_id, question_id, is_correct_answer, answer_date)
-                VALUES(
-                    (
-                     SELECT id 
-                       FROM public.users 
-                      WHERE login = '{username}'
-                    ),
-                    (
-                     SELECT id 
-                       FROM public.questions 
-                      WHERE text = '{poll_question}'
-                    ),
-                    {is_correct_answer},
-                    '{date}'
-                )
+                   VALUES(
+                       (SELECT id
+                          FROM public.users
+                         WHERE login = '{username}'),
+                       (SELECT id 
+                          FROM public.questions 
+                         WHERE text = '{poll_question}'),
+                       {is_correct_answer},
+                       '{date}'
+                   )
         '''
         self.cursor.execute(query)
