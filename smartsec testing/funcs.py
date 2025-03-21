@@ -21,32 +21,37 @@ class TGTestingBot(telebot.TeleBot):
             # reply_markup=markUpSave('start')
         )
 
-    def send_quiz(self, message: types.Message):
+    def user_request_responding(self, message: types.Message):
         if message.chat.type == 'private':
             match message.text:
                 case '1':
-                    with Database() as db:
-                        question_data = db.get_quiz_question_data()
-                        question_id = question_data["question_id"]
-                        raw_answers_data = db.get_question_answers(question_id)
-
-                    answers_data = self.parse_answers_data(raw_answers_data)
-
-                    poll_message = self.send_poll(
-                        chat_id=message.chat.id,
-                        question=question_data["question_text"],
-                        options=answers_data["answers_text_list"],
-                        type='quiz',
-                        is_anonymous=False,
-                        correct_option_id=answers_data["correct_answer"],
-                        explanation=question_data["explanation"]
-                    )
-                    self.active_quizzes[message.chat.username] = poll_message.poll
+                    self.send_quiz(
+                        message.chat.id,
+                        message.chat.username)
                 case _:
                     self.send_message(
                         message.chat.id,
                         "Жди теста"
                     )
+
+    def send_quiz(self, user_id: int, user_name: str):
+        with Database() as db:
+            question_data = db.get_quiz_question_data()
+            question_id = question_data["question_id"]
+            raw_answers_data = db.get_question_answers(question_id)
+
+        answers_data = self.parse_answers_data(raw_answers_data)
+
+        poll_message = self.send_poll(
+            chat_id=user_id,
+            question=question_data["question_text"],
+            options=answers_data["answers_text_list"],
+            type='quiz',
+            is_anonymous=False,
+            correct_option_id=answers_data["correct_answer"],
+            explanation=question_data["explanation"]
+        )
+        self.active_quizzes[user_name] = poll_message.poll
 
     def check_quiz_result(self, quiz_answer: types.PollAnswer):
         trigger_poll = self.active_quizzes.pop(quiz_answer.user.username)

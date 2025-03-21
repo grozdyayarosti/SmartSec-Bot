@@ -70,7 +70,6 @@ class TGHelpBot(telebot.TeleBot):
     @staticmethod
     def processing_response(response: str) -> str:
         # TODO реализовать через регулярки
-        # TODO обработать вопрос Как получить SSL-сертификат для своего веб-сайта?
         response = response.replace('.', '\\.')
         response = response.replace("_", "\\_")
         response = response.replace("-", "\\-")
