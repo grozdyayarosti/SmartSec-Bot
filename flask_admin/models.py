@@ -4,7 +4,7 @@ from sqlalchemy.orm import DeclarativeBase, Relationship
 
 # TODO прописать Nullable-атрибуты
 class AnswerResultsView(ModelView):
-    column_list = ['id', 'question_id', 'answer_id', 'is_correct']  # Явно перечисляем столбцы
+    column_list = ['question', 'answer', 'is_correct']  # Явно перечисляем столбцы
     form_columns = ['question', 'answer', 'is_correct']             # Показываем в форме
     form_ajax_refs = {
         'question': {
@@ -19,13 +19,21 @@ class AnswerResultsView(ModelView):
         }
     }
 
+class TestingResultsView(ModelView):
+    column_list = ['login', 'question', 'is_correct_answer', 'answer_date']  # Явно перечисляем столбцы
+
+
 class BaseModel(DeclarativeBase): pass
+
+
 class User(BaseModel):
     __tablename__ = "users"
 
     id = Column(Integer, primary_key=True)
     login = Column(String)
     is_completed = Column(Boolean)
+    def __str__(self):
+        return f"{self.login}"
 
 
 class Question(BaseModel):
@@ -64,6 +72,8 @@ class TestingResult(BaseModel):
 
     id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey('users.id'))
+    login = Relationship('User')
     question_id = Column(Integer, ForeignKey('questions.id'))
+    question = Relationship('Question')
     is_correct_answer = Column(Boolean)
     answer_date = Column(Date)

@@ -3,7 +3,7 @@ from flask_admin import Admin
 from flask_sqlalchemy import SQLAlchemy
 from flask_admin.contrib.sqla import ModelView
 
-from models import User, Question, Answer, TestingResult, AnswerResult, AnswerResultsView
+from models import User, Question, Answer, TestingResult, AnswerResult, AnswerResultsView, TestingResultsView
 from smartsec_testing.constants import PG_USER, PG_PASSWORD, PG_HOST, PG_DBNAME, FLASK_SECRET_KEY
 
 app = Flask(__name__)
@@ -25,7 +25,7 @@ admin.add_view(ModelView(Question, db.session))
 admin.add_view(ModelView(Answer, db.session))
 admin.add_view(AnswerResultsView(AnswerResult, db.session))
 admin.add_view(ModelView(User, db.session))
-admin.add_view(ModelView(TestingResult, db.session))
+admin.add_view(TestingResultsView(TestingResult, db.session))
 
 
 if __name__ == '__main__':
