@@ -21,6 +21,15 @@ class AnswerResultsView(ModelView):
 
 class TestingResultsView(ModelView):
     column_list = ['login', 'question', 'is_correct_answer', 'answer_date']  # Явно перечисляем столбцы
+    can_create = False  # Запретить создание
+    can_edit = False    # Запретить редактирование
+    can_delete = False  # Опционально: запретить удаление
+
+
+class UserView(ModelView):
+    can_create = False  # Запретить создание
+    can_edit = False    # Запретить редактирование
+    can_delete = False  # Опционально: запретить удаление
 
 
 class BaseModel(DeclarativeBase): pass
