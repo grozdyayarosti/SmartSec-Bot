@@ -1,0 +1,11 @@
+{% extends 'admin/master.html' %}
+
+{% block body %}
+    <div class="container">
+        <h1>Статистика</h1>
+        <ul>
+            <li>Пользователей: {{ users_count }}</li>
+            <li>Вопросов: {{ questions_count }}</li>
+        </ul>
+    </div>
+{% endblock %}
