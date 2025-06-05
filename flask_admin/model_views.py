@@ -1,8 +1,8 @@
 from flask_admin.contrib.sqla import ModelView
 
 
-# TODO решить с нумерацией
-# TODO решить с сортировкой по буквам а не цифрам
+# TODO WSL Dramatiq
+# TODO поиск в админке
 class AnswerResultsView(ModelView):
     column_list = ['question', 'answer', 'is_correct']  # Отображаемые в модели столбцы
     form_columns = ['question', 'answer', 'is_correct'] # Отображаемые в форме столбцы
