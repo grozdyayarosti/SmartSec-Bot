@@ -1,16 +1,25 @@
+import datetime
+import threading
 import time
-from telebot import types
-import schedule
 
-from constants import MY_NAME, MY_ID
+import requests
+import telebot
+from flask import Flask, request
+from telebot import types
+
 from funcs import TGTestingBot
+from smartsec_testing.constants import TG_WEBHOOK_INFO_URL, WEBHOOK_URL, WEBHOOK_PORT
+from smartsec_testing.smart_sec_scheduler import SmartSecScheduler
 
 
 bot = TGTestingBot()
+app = Flask(__name__)
+scheduler = SmartSecScheduler(bot)
+
 
 @bot.message_handler(commands=['start'])
 def welcome(message):
-    bot.start_message(message)
+    bot.start_bot(message)
 
 
 @bot.message_handler(content_types=['text'])
@@ -22,22 +31,49 @@ def testing_request(message):
 def handle_poll_answer(quiz_answer: types.PollAnswer):
     bot.check_quiz_result(quiz_answer)
 
-# schedule.every(10).seconds.do(
-#     lambda: bot.send_quiz(MY_ID, MY_NAME)
-# )
-# schedule.every().day.at("22:05").do(
-#     lambda: bot.send_quiz(MY_ID, MY_NAME)
-# )
-# schedule.every().hour.do(lambda: print())
 
-# while True:
-#     schedule.run_pending()
-#     time.sleep(1)
-print('BOT IS STARTED')
-bot.polling(none_stop=True)
-# while True:
-#     schedule.every(10).seconds.do(
-#         lambda: bot.send_quiz(MY_ID, MY_NAME)
-#     )
-#     schedule.run_pending()
-#     time.sleep(1)
+@bot.callback_query_handler(func=lambda callback: callback.data)
+def check_callback_data(callback: telebot.types.CallbackQuery):
+    if callback.data == 'go_testing':
+        # scheduler.pause_scheduler()
+        bot.start_testing(callback)
+        # scheduler.resume_scheduler()
+
+    # elif callback.data == 'next_question':
+    #     print('Следующий вопрос...')
+
+
+@app.route('/webhook', methods=['GET', 'POST'])
+def webhook():
+    if request.method == 'GET':
+        return 'Это Webhook бота!', 200  # Теперь браузер получит ответ
+    if request.method == 'POST':
+        if request.headers.get('content-type') == 'application/json':
+            json_data = request.get_json()
+            update = telebot.types.Update.de_json(json_data)
+            bot.process_new_updates([update])
+            print(f'[{str(datetime.datetime.now().time()).split(".")[0]}] - REPLY sending quiz...')
+            return 'OK', 200
+    return 'Invalid content-type', 400
+
+
+# bot.polling()
+if __name__ == '__main__':
+    print(requests.get(TG_WEBHOOK_INFO_URL).json())
+
+    # Удаляем старый Webhook и устанавливаем новый
+    bot.remove_webhook()
+    time.sleep(1)
+    bot.set_webhook(url=WEBHOOK_URL)
+
+    # Запуск планировщика в отдельном потоке
+    scheduler_thread = threading.Thread(target=scheduler.start_scheduler,
+                                        daemon=True)
+    scheduler_thread.start()
+
+    # Запуск Flask-сервера
+    print(f"Бот запущен на Webhook: {WEBHOOK_URL}")
+    app.run(port=WEBHOOK_PORT)
+
+# https://cloudpub.ru/dashboard
+# clo.exe publish http port
