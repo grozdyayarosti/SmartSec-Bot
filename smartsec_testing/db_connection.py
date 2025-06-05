@@ -26,6 +26,41 @@ class Database:
         self.conn.commit()
         self.conn.close()
 
+    def check_testing_completeness(self, username: str) -> bool:
+        self.cursor.execute(f"SELECT is_completed FROM users WHERE login='{username}';")
+        is_completed = self.cursor.fetchone()
+        return is_completed[0]
+
+    def check_last_answer(self):
+        self.cursor.execute(f"""
+            select is_correct_answer from testing_results tr
+            WHERE is_correct_answer
+            and answer_date IS NOT NULL
+            order by answer_date desc
+            limit 1;
+        """)
+        is_correct = self.cursor.fetchone()
+        return False
+        # return is_correct[0]
+
+    def set_testing_completed(self, is_completed: bool, username: str):
+        self.cursor.execute(f"""
+            UPDATE users SET is_completed = {is_completed}
+            WHERE
+            id = (select id from users where login='{username}');
+        """)
+
+    def get_user_statistics(self, username: str) -> tuple:
+        self.cursor.execute(f"""
+            SELECT COUNT(*) AS total_count,
+                   COUNT(*) FILTER(WHERE is_correct_answer) AS true_count
+              FROM testing_results
+             WHERE user_id = (SELECT id FROM users WHERE login='{username}');
+        """)
+        user_statistics = self.cursor.fetchone()
+        return user_statistics
+
+
     def get_quiz_question_data(self) -> dict[str: str]:
         random_number = random.randint(1, 3)
         self.cursor.execute(f"SELECT * FROM questions WHERE id={random_number};")
