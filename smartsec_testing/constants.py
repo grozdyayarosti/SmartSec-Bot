@@ -15,3 +15,5 @@ PG_DBNAME = os.environ.get('PG_DBNAME')
 MY_ID = os.environ.get('MY_ID')
 MY_NAME = os.environ.get('MY_NAME')
 FLASK_SECRET_KEY = os.environ.get('FLASK_SECRET_KEY')
+
+TESTING_QUESTION_COUNT = 3
