@@ -7,13 +7,14 @@ from db_connection import Database
 from constants import TELEGRAM_BOT_TOKEN, TESTING_QUESTION_COUNT
 
 
-# TODO защита от игнора
+# TODO защита от игнора регулярных вопросов
 class TGTestingBot(telebot.TeleBot):
     def __init__(self):
         super().__init__(TELEGRAM_BOT_TOKEN)
         # TODO завести БД под эту историю
         self.active_quizzes : dict[str: types.Poll] = dict()
-        self.testing_quizzes = dict()
+        self.testing_quizzes = []
+        # необходимые поля: user_name, question_id, is_correct
 
     def start_bot(self, message: types.Message):
         # TODO регистрация пользователя
@@ -62,9 +63,9 @@ class TGTestingBot(telebot.TeleBot):
         )
         self.send_message(user_id,f"Тестирование начато!")
 
-        self.testing_quizzes[user_name] = {"question_number": 1}
+        self.testing_quizzes.append({user_name: None})
         # TODO счетчик результатов (то есть оценка прохождения тестирования)
-        # варианты:
+        # варианты ожидания ответов от юзера в режиме тестирования:
         # 1. хранение состояния в справочнике и юз handle_poll_answer
         # 2. хранение состояния в справочнике и юз register_next_step_handler_by_chat_id
         # 3. прикрутить коллбек
@@ -110,18 +111,37 @@ class TGTestingBot(telebot.TeleBot):
 
         answers_data = self.parse_answers_data(raw_answers_data)
 
-        poll_message = self.send_poll(
-            chat_id=user_id,
-            question=question_data["question_text"],
-            options=answers_data["answers_text_list"],
-            type='quiz',
-            is_anonymous=False,
-            correct_option_id=answers_data["correct_answer"],
-            explanation=question_data["explanation"]
-        )
-        self.active_quizzes[user_name] = poll_message.poll
+
         if self.testing_quizzes.get(user_name):
-            self.testing_quizzes[user_name].update({'poll': poll_message.poll})
+            poll_message = self.send_poll(
+                chat_id=user_id,
+                question=question_data["question_text"],
+                options=answers_data["answers_text_list"],
+                type='quiz',
+                is_anonymous=False,
+                correct_option_id=answers_data["correct_answer"],
+                explanation=question_data["explanation"],
+                open_period=10
+            )
+            # self.testing_quizzes[user_name].update({'poll': poll_message.poll})
+            self.testing_quizzes[user_name].update({'poll_message_id': poll_message.message_id})
+        else:
+            poll_message = self.send_poll(
+                chat_id=user_id,
+                question=question_data["question_text"],
+                options=answers_data["answers_text_list"],
+                type='quiz',
+                is_anonymous=False,
+                correct_option_id=answers_data["correct_answer"],
+                explanation=question_data["explanation"]
+            )
+        self.active_quizzes[user_name] = poll_message.poll
+        time.sleep(10)
+        # if запись user_id - question_id не имеет ответа: заполняем как неправильный ответ
+        self.send_message(
+            user_id,
+            f'Всеё! Опрос в сообщении {poll_message.message_id} - {poll_message.poll.is_closed}',
+            parse_mode='html')
 
     def check_quiz_result(self, quiz_answer: types.PollAnswer):
         trigger_poll = self.active_quizzes.pop(quiz_answer.user.username)
@@ -138,6 +158,13 @@ class TGTestingBot(telebot.TeleBot):
             quiz_answer.user.id,
             "Ответ записан"
         )
+
+        # poll_message_id = self.testing_quizzes[quiz_answer.user.username]['poll_message_id']
+        # self.stop_poll(quiz_answer.user.id, poll_message_id)
+        # self.send_message(
+        #     quiz_answer.user.id,
+        #     f"Опрос в сообщении {poll_message_id} - True"
+        # )
 
         if self.testing_quizzes.get(user_name):
             current_question_number = self.testing_quizzes[user_name]['question_number']
