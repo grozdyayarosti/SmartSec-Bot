@@ -15,5 +15,10 @@ PG_DBNAME = os.environ.get('PG_DBNAME')
 MY_ID = os.environ.get('MY_ID')
 MY_NAME = os.environ.get('MY_NAME')
 FLASK_SECRET_KEY = os.environ.get('FLASK_SECRET_KEY')
+# WEBHOOK_URL = "https://discernibly-great-dowitcher.cloudpub.ru/webhook"
+WEBHOOK_URL = os.environ.get('WEBHOOK_URL') + "/webhook"
+WEBHOOK_PORT = os.environ.get('WEBHOOK_PORT')
+CLOUDPUB_TOKEN = os.environ.get('CLOUDPUB_TOKEN')
+TG_WEBHOOK_INFO_URL = os.environ.get('TG_WEBHOOK_INFO_URL').format(cloudpub_token=CLOUDPUB_TOKEN)
 
 TESTING_QUESTION_COUNT = 3
