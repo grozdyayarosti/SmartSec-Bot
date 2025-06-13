@@ -1,3 +1,4 @@
+import random
 from typing import Any
 import telebot
 from telebot import types
@@ -77,14 +78,13 @@ class TGTestingBot(telebot.TeleBot):
             result_text,
             parse_mode='html')
 
-
     def send_quiz(self, user_id: int, user_name: str, is_user_testing: bool):
-        # TODO перемешивание вариантов ответов
         with Database() as db:
             question_data = db.get_quiz_question_data(is_user_testing)
             question_id = question_data["question_id"]
             raw_answers_data = db.get_question_answers(question_id)
 
+        random.shuffle(raw_answers_data)
         answers_data = self.parse_answers_data(raw_answers_data)
 
         if is_user_testing:
