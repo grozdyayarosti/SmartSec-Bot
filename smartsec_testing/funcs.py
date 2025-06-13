@@ -5,7 +5,7 @@ from telebot import types
 import time
 
 from db_connection import Database
-from constants import TELEGRAM_BOT_TOKEN, TESTING_QUESTION_COUNT
+from constants import TELEGRAM_BOT_TOKEN, TESTING_QUESTION_COUNT, TESTING_COMPLETE_RESULT
 
 
 # TODO защита от игнора регулярных вопросов
@@ -64,15 +64,16 @@ class TGTestingBot(telebot.TeleBot):
 
         with Database() as db:
             db.clear_user_testing_track(user_name)
-        # TODO счетчик результатов (то есть оценка прохождения тестирования) - чистка данных по юзеру в testing_track - сразу после вычисления результатов тестирования
         self.send_quiz(user_id, user_name, True)
 
     def end_testing(self, user_id, user_name):
         self.send_message(user_id,f"Тестирование окончено!")
         with Database() as db:
-            is_correct = db.check_last_answer()
-            db.set_testing_completed(is_correct, user_name)
-        result_text = "Вы успешно сдали тестирование!" if is_correct else "Вы провалили тестирование!"
+            correct_answers_count = db.calc_user_testing_result(user_name)
+            result = round(correct_answers_count / TESTING_QUESTION_COUNT, 4)
+            is_complete = result >= TESTING_COMPLETE_RESULT
+            db.set_testing_completed(is_complete, user_name)
+        result_text = "Вы успешно сдали тестирование!" if is_complete else "Вы провалили тестирование!"
         self.send_message(
             user_id,
             result_text,

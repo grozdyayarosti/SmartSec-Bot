@@ -31,17 +31,17 @@ class Database:
         is_completed = self.cursor.fetchone()
         return is_completed[0]
 
-    def check_last_answer(self):
-        self.cursor.execute(f"""
-            select is_correct_answer from testing_results tr
-            WHERE is_correct_answer
-            and answer_date IS NOT NULL
-            order by answer_date desc
-            limit 1;
-        """)
-        is_correct = self.cursor.fetchone()
-        return False
-        # return is_correct[0]
+    def calc_user_testing_result(self, user_name: str):
+        query = f"""
+            select count(*) 
+              from public.testing_track 
+             where user_name='{user_name}'
+               and is_correct = true
+        """
+        self.cursor.execute(query)
+        correct_answers_count = self.cursor.fetchone()[0]
+        self.clear_user_testing_track(user_name)
+        return correct_answers_count
 
     def set_testing_completed(self, is_completed: bool, username: str):
         self.cursor.execute(f"""
