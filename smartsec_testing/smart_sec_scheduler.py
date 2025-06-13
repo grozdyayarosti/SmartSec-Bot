@@ -3,7 +3,7 @@ import schedule
 from aiogram import Bot, Dispatcher
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.schedulers.background import BackgroundScheduler
-from constants import MY_NAME, MY_ID
+from constants import MY_NAME, MY_ID, REGULAR_QUESTIONS_PERIOD
 import time
 import datetime
 
@@ -25,7 +25,7 @@ class SmartSecScheduler:
         self.scheduler = BackgroundScheduler()
         self.scheduler.add_job(self.send_scheduled_message,
                           trigger='interval',
-                          seconds=2*24*60*60)
+                          seconds=REGULAR_QUESTIONS_PERIOD)
         self.scheduler.start()
         print("Планировщик запущен!")
         try:
