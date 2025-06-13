@@ -35,12 +35,9 @@ def handle_poll_answer(quiz_answer: types.PollAnswer):
 @bot.callback_query_handler(func=lambda callback: callback.data)
 def check_callback_data(callback: telebot.types.CallbackQuery):
     if callback.data == 'go_testing':
-        # scheduler.pause_scheduler()
+        scheduler.pause_scheduler()
         bot.start_testing(callback)
-        # scheduler.resume_scheduler()
-
-    # elif callback.data == 'next_question':
-    #     print('Следующий вопрос...')
+        scheduler.resume_scheduler()
 
 
 @app.route('/webhook', methods=['GET', 'POST'])
