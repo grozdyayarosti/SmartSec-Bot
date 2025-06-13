@@ -36,7 +36,7 @@ class TGTestingBot(telebot.TeleBot):
                 message.chat.id,
                 f"Вы прошли тестирование! Ожидайте регулярных вопросов...\n\n"
                 f"📊 Ваша статистика:\n<b>✍️ {correct_count}/{total_count} "
-                f"({100 * round(correct_count/total_count, 4)})%</b>",
+                f"({float(f'{100 * correct_count/total_count:.2f}')})%</b>",
                 parse_mode='html')
         else:
             to_testing_btn = types.InlineKeyboardButton(text='Начать тестирование',
@@ -47,7 +47,7 @@ class TGTestingBot(telebot.TeleBot):
                 message.chat.id,
                 f"Вы ещё не прошли тестирование!\n\n"
                 f"📊 Ваша статистика:\n<b>✍️ {correct_count}/{total_count} "
-                f"({round(100 * correct_count/total_count, 2)}%)</b>",
+                f"({float(f'{100 * correct_count/total_count:.2f}')}%)</b>",
                 parse_mode='html',
                 reply_markup=to_testing_markup)
 
