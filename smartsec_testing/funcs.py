@@ -8,13 +8,14 @@ from constants import TELEGRAM_BOT_TOKEN, TESTING_QUESTION_COUNT
 
 
 # TODO защита от игнора регулярных вопросов
+# TODO разделение регулярных и тестировочных вопросов в testing_results
+# FIXME (после игнора и по дефолту "Ответ записан" мгновенный, после успевания за 10 сек "Ответ записан" приходится ждать 10 сек)
+# возможно придётся time.sleep() вывести в многопоток или асинк
 class TGTestingBot(telebot.TeleBot):
     def __init__(self):
         super().__init__(TELEGRAM_BOT_TOKEN)
         # TODO завести БД под эту историю
         self.active_quizzes : dict[str: types.Poll] = dict()
-        self.testing_quizzes = []
-        # необходимые поля: user_name, question_id, is_correct
 
     def start_bot(self, message: types.Message):
         # TODO регистрация пользователя
@@ -23,10 +24,7 @@ class TGTestingBot(telebot.TeleBot):
             message.chat.id,
             f"Я - автоматическая система тестирования <b>SmartSec Testing</b>.\n"
             f"",
-            parse_mode='html',
-            # Вывод альтернативной клавиатуры для выбора предложенных ответов
-            # (в зависимости от параметра будут предложены разные варианты в клавиатуре)
-            # reply_markup=markUpSave('start')
+            parse_mode='html'
         )
 
         with Database() as db:
@@ -63,25 +61,16 @@ class TGTestingBot(telebot.TeleBot):
         )
         self.send_message(user_id,f"Тестирование начато!")
 
-        self.testing_quizzes.append({user_name: None})
-        # TODO счетчик результатов (то есть оценка прохождения тестирования)
-        # варианты ожидания ответов от юзера в режиме тестирования:
-        # 1. хранение состояния в справочнике и юз handle_poll_answer
-        # 2. хранение состояния в справочнике и юз register_next_step_handler_by_chat_id
-        # 3. прикрутить коллбек
-        # 4. через Машина состояний (FSM)
-        self.send_quiz(user_id,user_name)
-        # time.sleep(5)
-
-        # self.end_testing(user_id, user_name)
-
+        with Database() as db:
+            db.clear_user_testing_track(user_name)
+        # TODO счетчик результатов (то есть оценка прохождения тестирования) - чистка данных по юзеру в testing_track - сразу после вычисления результатов тестирования
+        self.send_quiz(user_id, user_name, True)
 
     def end_testing(self, user_id, user_name):
         self.send_message(user_id,f"Тестирование окончено!")
         with Database() as db:
             is_correct = db.check_last_answer()
             db.set_testing_completed(is_correct, user_name)
-
         result_text = "Вы успешно сдали тестирование!" if is_correct else "Вы провалили тестирование!"
         self.send_message(
             user_id,
@@ -89,30 +78,16 @@ class TGTestingBot(telebot.TeleBot):
             parse_mode='html')
 
 
-    def user_request_responding(self, message: types.Message):
-        if message.chat.type == 'private':
-            match message.text:
-                case '1':
-                    self.send_quiz(
-                        message.chat.id,
-                        message.chat.username)
-                case _:
-                    self.send_message(
-                        message.chat.id,
-                        "Жди теста"
-                    )
-
-    def send_quiz(self, user_id: int, user_name: str):
+    def send_quiz(self, user_id: int, user_name: str, is_user_testing: bool):
         # TODO перемешивание вариантов ответов
         with Database() as db:
-            question_data = db.get_quiz_question_data()
+            question_data = db.get_quiz_question_data(is_user_testing)
             question_id = question_data["question_id"]
             raw_answers_data = db.get_question_answers(question_id)
 
         answers_data = self.parse_answers_data(raw_answers_data)
 
-
-        if self.testing_quizzes.get(user_name):
+        if is_user_testing:
             poll_message = self.send_poll(
                 chat_id=user_id,
                 question=question_data["question_text"],
@@ -123,8 +98,8 @@ class TGTestingBot(telebot.TeleBot):
                 explanation=question_data["explanation"],
                 open_period=10
             )
-            # self.testing_quizzes[user_name].update({'poll': poll_message.poll})
-            self.testing_quizzes[user_name].update({'poll_message_id': poll_message.message_id})
+            with Database() as db:
+                db.add_question_to_testing_track(user_name, question_id)
         else:
             poll_message = self.send_poll(
                 chat_id=user_id,
@@ -137,13 +112,34 @@ class TGTestingBot(telebot.TeleBot):
             )
         self.active_quizzes[user_name] = poll_message.poll
         time.sleep(10)
-        # if запись user_id - question_id не имеет ответа: заполняем как неправильный ответ
+        with Database() as db:
+            is_existing = db.check_answer_existing(user_name, question_id)
+        if not is_existing:
+            self.send_empty_testing_answer(user_name, user_id, question_data["question_text"])
+
+    def send_empty_testing_answer(self, user_name: str, user_id: int, poll_question: str):
+        with Database() as db:
+            db.send_testing_results_to_db(
+                username=user_name,
+                poll_question=poll_question,
+                is_correct_answer=False
+            )
+            is_user_testing = db.check_user_testing(user_name)
+            current_question_number = db.get_user_testing_question_number(user_name)
         self.send_message(
             user_id,
-            f'Всеё! Опрос в сообщении {poll_message.message_id} - {poll_message.poll.is_closed}',
-            parse_mode='html')
+            "❌ Ответ записан"
+        )
 
-    def check_quiz_result(self, quiz_answer: types.PollAnswer):
+        if is_user_testing:
+            with Database() as db:
+                db.set_answer_to_testing_track(user_name, poll_question, False)
+            if current_question_number < TESTING_QUESTION_COUNT:
+                self.send_quiz(user_id, user_name, True)
+            else:
+                self.end_testing(user_id, user_name)
+
+    def check_quiz_result(self, quiz_answer: types.PollAnswer | None):
         trigger_poll = self.active_quizzes.pop(quiz_answer.user.username)
         is_correct_answer = trigger_poll.correct_option_id == quiz_answer.option_ids[0]
         poll_question = trigger_poll.question
@@ -154,24 +150,18 @@ class TGTestingBot(telebot.TeleBot):
                 poll_question,
                 is_correct_answer
             )
+            is_user_testing = db.check_user_testing(user_name)
+            current_question_number = db.get_user_testing_question_number(user_name)
         self.send_message(
             quiz_answer.user.id,
-            "Ответ записан"
+            ("✅" if is_correct_answer else "❌") + " Ответ записан"
         )
 
-        # poll_message_id = self.testing_quizzes[quiz_answer.user.username]['poll_message_id']
-        # self.stop_poll(quiz_answer.user.id, poll_message_id)
-        # self.send_message(
-        #     quiz_answer.user.id,
-        #     f"Опрос в сообщении {poll_message_id} - True"
-        # )
-
-        if self.testing_quizzes.get(user_name):
-            current_question_number = self.testing_quizzes[user_name]['question_number']
+        if is_user_testing:
+            with Database() as db:
+                db.set_answer_to_testing_track(user_name, poll_question, is_correct_answer)
             if current_question_number < TESTING_QUESTION_COUNT:
-                # TODO организовать неповторяемость вопросов
-                self.testing_quizzes[user_name].update({'question_number': current_question_number + 1})
-                self.send_quiz(quiz_answer.user.id, user_name)
+                self.send_quiz(quiz_answer.user.id, user_name, True)
             else:
                 self.end_testing(quiz_answer.user.id, quiz_answer.user.username)
 

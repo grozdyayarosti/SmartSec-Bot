@@ -17,7 +17,7 @@ class SmartSecScheduler:
         self.bot = bot
 
     def send_scheduled_message(self):
-        self.bot.send_quiz(MY_ID, MY_NAME)
+        self.bot.send_quiz(MY_ID, MY_NAME, False)
         print(f'[{str(datetime.datetime.now().time()).split(".")[0]}]'
               f' - SCHEDULE sending quiz...')
 
