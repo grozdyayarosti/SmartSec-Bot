@@ -5,10 +5,12 @@ from telebot import types
 import time
 
 from db_connection import Database
-from constants import TELEGRAM_BOT_TOKEN, TESTING_QUESTION_COUNT, TESTING_COMPLETE_RESULT
+from constants import TELEGRAM_BOT_TOKEN, TESTING_QUESTION_COUNT, TESTING_COMPLETE_RESULT, \
+    ANSWER_TO_TESTING_QUESTION_TIME
 
 
 # TODO защита от игнора регулярных вопросов
+# TODO баг при нескольких проигноренных регулярных вопросах
 # TODO разделение регулярных и тестировочных вопросов в testing_results
 # FIXME (после игнора и по дефолту "Ответ записан" мгновенный, после успевания за 10 сек "Ответ записан" приходится ждать 10 сек)
 # возможно придётся time.sleep() вывести в многопоток или асинк
@@ -97,10 +99,14 @@ class TGTestingBot(telebot.TeleBot):
                 is_anonymous=False,
                 correct_option_id=answers_data["correct_answer"],
                 explanation=question_data["explanation"],
-                open_period=10
+                open_period=ANSWER_TO_TESTING_QUESTION_TIME
             )
             with Database() as db:
                 db.add_question_to_testing_track(user_name, question_id)
+                time.sleep(ANSWER_TO_TESTING_QUESTION_TIME)
+                is_existing = db.check_answer_existing(user_name, question_id)
+            if not is_existing:
+                self.send_empty_testing_answer(user_name, user_id, question_data["question_text"])
         else:
             poll_message = self.send_poll(
                 chat_id=user_id,
@@ -112,19 +118,9 @@ class TGTestingBot(telebot.TeleBot):
                 explanation=question_data["explanation"]
             )
         self.active_quizzes[user_name] = poll_message.poll
-        time.sleep(10)
-        with Database() as db:
-            is_existing = db.check_answer_existing(user_name, question_id)
-        if not is_existing:
-            self.send_empty_testing_answer(user_name, user_id, question_data["question_text"])
 
     def send_empty_testing_answer(self, user_name: str, user_id: int, poll_question: str):
         with Database() as db:
-            db.send_testing_results_to_db(
-                username=user_name,
-                poll_question=poll_question,
-                is_correct_answer=False
-            )
             is_user_testing = db.check_user_testing(user_name)
             current_question_number = db.get_user_testing_question_number(user_name)
         self.send_message(
@@ -146,13 +142,15 @@ class TGTestingBot(telebot.TeleBot):
         poll_question = trigger_poll.question
         user_name = quiz_answer.user.username
         with Database() as db:
-            db.send_testing_results_to_db(
-                user_name,
-                poll_question,
-                is_correct_answer
-            )
             is_user_testing = db.check_user_testing(user_name)
-            current_question_number = db.get_user_testing_question_number(user_name)
+            if is_user_testing:
+                current_question_number = db.get_user_testing_question_number(user_name)
+            else:
+                db.send_testing_results_to_db(
+                    user_name,
+                    poll_question,
+                    is_correct_answer
+                )
         self.send_message(
             quiz_answer.user.id,
             ("✅" if is_correct_answer else "❌") + " Ответ записан"
