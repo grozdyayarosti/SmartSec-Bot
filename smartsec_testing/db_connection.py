@@ -159,18 +159,20 @@ class Database:
 
 
     def check_answer_existing(self, user_name: str, question_id: int):
+        # Если ответ на вопрос есть или вопроса в принципе нет, то ответ дан
+        # Если ответа на вопрос нет (NULL), то ответ не дан
         query = f"""
-            select exists(
+            select not exists(
                 select 1
                   from testing_track 
                  where user_name = '{user_name}'
                    and question_id = {question_id}
-                   and is_correct IS NOT NULL
+                   and is_correct IS NULL
              )
         """
         self.cursor.execute(query)
-        is_existing = self.cursor.fetchone()[0]
-        return is_existing
+        is_answering = self.cursor.fetchone()[0]
+        return is_answering
 
     def add_question_track(self, user_name: str, correct_option_id: int, question: str, poll_id: str):
         query = f"""
@@ -178,6 +180,7 @@ class Database:
             VALUES('{user_name}', {correct_option_id}, '{question}', '{poll_id}')
         """
         self.cursor.execute(query)
+        self.conn.commit()
 
     def get_active_question_data(self, user_name: str, poll_id: str):
         query = f"""

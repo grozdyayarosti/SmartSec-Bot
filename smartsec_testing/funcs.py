@@ -11,7 +11,6 @@ from constants import TELEGRAM_BOT_TOKEN, TESTING_QUESTION_COUNT, TESTING_COMPLE
 
 # TODO защита от игнора регулярных вопросов
 # TODO вычисление максимально старого вопроса для регулярной отправки
-# TODO баг при нескольких проигноренных регулярных вопросах
 # FIXME (после игнора и по дефолту "Ответ записан" мгновенный, после успевания за 10 сек "Ответ записан" приходится ждать 10 сек)
 # возможно придётся time.sleep() вывести в многопоток или асинк
 class TGTestingBot(telebot.TeleBot):
@@ -101,9 +100,13 @@ class TGTestingBot(telebot.TeleBot):
             )
             with Database() as db:
                 db.add_question_to_testing_track(user_name, question_id)
+                db.add_question_track(user_name,
+                                      poll_message.poll.correct_option_id,
+                                      question_data["question_text"],
+                                      poll_message.poll.id)
                 time.sleep(ANSWER_TO_TESTING_QUESTION_TIME)
-                is_existing = db.check_answer_existing(user_name, question_id)
-            if not is_existing:
+                is_answering = db.check_answer_existing(user_name, question_id)
+            if not is_answering:
                 self.send_empty_testing_answer(user_name, user_id, question_data["question_text"])
         else:
             poll_message = self.send_poll(
@@ -115,11 +118,11 @@ class TGTestingBot(telebot.TeleBot):
                 correct_option_id=answers_data["correct_answer"],
                 explanation=question_data["explanation"]
             )
-        with Database() as db:
-            db.add_question_track(user_name,
-                                  poll_message.poll.correct_option_id,
-                                  question_data["question_text"],
-                                  poll_message.poll.id)
+            with Database() as db:
+                db.add_question_track(user_name,
+                                      poll_message.poll.correct_option_id,
+                                      question_data["question_text"],
+                                      poll_message.poll.id)
         # self.active_quizzes[user_name] = poll_message.poll
 
     def send_empty_testing_answer(self, user_name: str, user_id: int, poll_question: str):
