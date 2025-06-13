@@ -37,6 +37,7 @@ def check_callback_data(callback: telebot.types.CallbackQuery):
     if callback.data == 'go_testing':
         scheduler.pause_scheduler()
         bot.start_testing(callback)
+        # TODO необходимо выполнять resume после окончания тестирования, а не после старта
         scheduler.resume_scheduler()
 
 
