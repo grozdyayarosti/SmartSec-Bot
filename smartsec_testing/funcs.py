@@ -10,15 +10,13 @@ from constants import TELEGRAM_BOT_TOKEN, TESTING_QUESTION_COUNT, TESTING_COMPLE
 
 
 # TODO защита от игнора регулярных вопросов
+# TODO вычисление максимально старого вопроса для регулярной отправки
 # TODO баг при нескольких проигноренных регулярных вопросах
-# TODO разделение регулярных и тестировочных вопросов в testing_results
 # FIXME (после игнора и по дефолту "Ответ записан" мгновенный, после успевания за 10 сек "Ответ записан" приходится ждать 10 сек)
 # возможно придётся time.sleep() вывести в многопоток или асинк
 class TGTestingBot(telebot.TeleBot):
     def __init__(self):
         super().__init__(TELEGRAM_BOT_TOKEN)
-        # TODO завести БД под эту историю
-        self.active_quizzes : dict[str: types.Poll] = dict()
 
     def start_bot(self, message: types.Message):
         # TODO регистрация пользователя
@@ -117,7 +115,12 @@ class TGTestingBot(telebot.TeleBot):
                 correct_option_id=answers_data["correct_answer"],
                 explanation=question_data["explanation"]
             )
-        self.active_quizzes[user_name] = poll_message.poll
+        with Database() as db:
+            db.add_question_track(user_name,
+                                  poll_message.poll.correct_option_id,
+                                  question_data["question_text"],
+                                  poll_message.poll.id)
+        # self.active_quizzes[user_name] = poll_message.poll
 
     def send_empty_testing_answer(self, user_name: str, user_id: int, poll_question: str):
         with Database() as db:
@@ -137,11 +140,10 @@ class TGTestingBot(telebot.TeleBot):
                 self.end_testing(user_id, user_name)
 
     def check_quiz_result(self, quiz_answer: types.PollAnswer | None):
-        trigger_poll = self.active_quizzes.pop(quiz_answer.user.username)
-        is_correct_answer = trigger_poll.correct_option_id == quiz_answer.option_ids[0]
-        poll_question = trigger_poll.question
         user_name = quiz_answer.user.username
         with Database() as db:
+            correct_option_id, poll_question = db.get_active_question_data(user_name, quiz_answer.poll_id)
+            is_correct_answer = correct_option_id == quiz_answer.option_ids[0]
             is_user_testing = db.check_user_testing(user_name)
             if is_user_testing:
                 current_question_number = db.get_user_testing_question_number(user_name)

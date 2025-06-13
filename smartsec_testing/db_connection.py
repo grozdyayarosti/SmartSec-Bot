@@ -6,7 +6,7 @@ import datetime
 
 from constants import PG_DBNAME, PG_USER, PG_PASSWORD, PG_HOST, PG_PORT
 
-
+# TODO переписать на ORM
 class Database:
     def __init__(self):
         ...
@@ -171,3 +171,28 @@ class Database:
         self.cursor.execute(query)
         is_existing = self.cursor.fetchone()[0]
         return is_existing
+
+    def add_question_track(self, user_name: str, correct_option_id: int, question: str, poll_id: str):
+        query = f"""
+            INSERT INTO active_question_track (user_name, correct_option_id, question, poll_id)
+            VALUES('{user_name}', {correct_option_id}, '{question}', '{poll_id}')
+        """
+        self.cursor.execute(query)
+
+    def get_active_question_data(self, user_name: str, poll_id: str):
+        query = f"""
+            SELECT correct_option_id, question
+              FROM public.active_question_track 
+             WHERE user_name = '{user_name}'
+               and poll_id = '{poll_id}'
+        """
+        self.cursor.execute(query)
+        obj = self.cursor.fetchone()
+        correct_option_id, question = obj
+        clear_data_query = f"""
+            DELETE FROM public.active_question_track 
+             WHERE user_name = '{user_name}'
+               AND poll_id = '{poll_id}'
+        """
+        self.cursor.execute(clear_data_query)
+        return correct_option_id, question
