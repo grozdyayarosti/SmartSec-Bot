@@ -10,26 +10,27 @@ from constants import TELEGRAM_BOT_TOKEN, TESTING_QUESTION_COUNT, TESTING_COMPLE
 
 
 # TODO защита от игнора регулярных вопросов
+# TODO добавить смайлики на сообщения
 # TODO вычисление максимально старого вопроса для регулярной отправки
-# FIXME (после игнора и по дефолту "Ответ записан" мгновенный, после успевания за 10 сек "Ответ записан" приходится ждать 10 сек)
-# возможно придётся time.sleep() вывести в многопоток или асинк
+# FIXME (после игнора и по дефолту "Ответ записан" мгновенный, после успевания за 10 сек "Ответ записан" приходится ждать 10 сек).
+#  Возможно придётся time.sleep() вывести в многопоток или асинк
 class TGTestingBot(telebot.TeleBot):
     def __init__(self):
         super().__init__(TELEGRAM_BOT_TOKEN)
 
     def start_bot(self, message: types.Message):
-        # TODO регистрация пользователя
-        # TODO добавить смайлики на сообщения
+
+        with Database() as db:
+            db.user_registration(message.chat.username)
+            is_completed = db.check_testing_completeness(message.chat.username)
+            total_count, correct_count = db.get_user_statistics(message.chat.username)
+
         self.send_message(
             message.chat.id,
             f"Я - автоматическая система тестирования <b>SmartSec Testing</b>.\n"
             f"",
             parse_mode='html'
         )
-
-        with Database() as db:
-            is_completed = db.check_testing_completeness(message.chat.username)
-            total_count, correct_count = db.get_user_statistics(message.chat.username)
 
         if is_completed:
             self.send_message(

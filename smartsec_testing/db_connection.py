@@ -26,6 +26,16 @@ class Database:
         self.conn.commit()
         self.conn.close()
 
+    def user_registration(self, user_name: str):
+        query = f"""
+        INSERT INTO users (login, is_completed)
+            SELECT '{user_name}', False
+            WHERE NOT EXISTS (
+                SELECT 1 FROM users WHERE login = '{user_name}'
+            )
+        """
+        self.cursor.execute(query)
+
     def check_testing_completeness(self, username: str) -> bool:
         self.cursor.execute(f"SELECT is_completed FROM users WHERE login='{username}';")
         is_completed = self.cursor.fetchone()
