@@ -101,19 +101,21 @@ class TGTestingBot(telebot.TeleBot):
             )
             with Database() as db:
                 db.add_question_to_user_testing_statistics(user_name, question_id)
-                db.add_question_track(user_name,
-                                      poll_message.poll.correct_option_id,
-                                      question_data["question_text"],
-                                      poll_message.poll.id)
+                db.add_question_to_buffer_statistics(user_name,
+                                                     poll_message.poll.correct_option_id,
+                                                     question_data["question_text"],
+                                                     poll_message.poll.id,
+                                                     poll_message.message_id)
                 time.sleep(ANSWER_TO_TESTING_QUESTION_TIME)
                 is_answering = db.check_answer_existing(user_name, question_id)
             if not is_answering:
                 self.send_empty_testing_answer(user_name, user_id, question_data["question_text"])
         else:
             with Database() as db:
+                poll_message_id = db.get_user_question_poll_message_id(user_name)
                 is_answering_last_question = db.check_user_answering_last_reqular_question(user_name)
             if not is_answering_last_question:
-                self.send_empty_reqular_answer(user_name, user_id, question_data["question_text"])
+                self.send_empty_reqular_answer(user_name, user_id, question_data["question_text"], poll_message_id)
             poll_message = self.send_poll(
                 chat_id=user_id,
                 question=question_data["question_text"],
@@ -124,10 +126,11 @@ class TGTestingBot(telebot.TeleBot):
                 explanation=question_data["explanation"]
             )
             with Database() as db:
-                db.add_question_track(user_name,
-                                      poll_message.poll.correct_option_id,
-                                      question_data["question_text"],
-                                      poll_message.poll.id)
+                db.add_question_to_buffer_statistics(user_name,
+                                                     poll_message.poll.correct_option_id,
+                                                     question_data["question_text"],
+                                                     poll_message.poll.id,
+                                                     poll_message.message_id)
 
     def send_empty_testing_answer(self, user_name: str, user_id: int, question_text: str):
         with Database() as db:
@@ -142,7 +145,12 @@ class TGTestingBot(telebot.TeleBot):
         else:
             self.end_testing(user_id, user_name)
 
-    def send_empty_reqular_answer(self, user_name: str,  user_id: int, question_text: str):
+    def send_empty_reqular_answer(self, user_name: str, user_id: int, question_text: str, poll_message_id: int):
+        if poll_message_id is not None:
+            self.stop_poll(
+                chat_id=user_id,
+                message_id=poll_message_id
+            )
         with Database() as db:
             db.send_testing_results_to_db(
                 user_name,

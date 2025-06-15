@@ -188,15 +188,17 @@ class Database:
         is_answering = self.cursor.fetchone()[0]
         return is_answering
 
-    def add_question_track(self, user_name: str, correct_option_id: int, question: str, poll_id: str):
+    def add_question_to_buffer_statistics(self, user_name: str, correct_option_id: int,
+                                          question: str, poll_id: str, message_id: int):
         query = f"""
-            INSERT INTO buffer_question_statistics (user_name, correct_option_id, question, poll_id)
-            VALUES('{user_name}', {correct_option_id}, '{question}', '{poll_id}')
+            INSERT INTO buffer_question_statistics (user_name, correct_option_id, question, poll_id, poll_message_id)
+            VALUES('{user_name}', {correct_option_id}, '{question}', '{poll_id}', {message_id})
         """
         self.cursor.execute(query)
         self.conn.commit()
 
     def get_user_active_question_data(self, user_name: str, poll_id: str):
+        # TODO здесь нужен poll_id?
         query = f"""
             SELECT correct_option_id, question
               FROM buffer_question_statistics 
@@ -206,6 +208,7 @@ class Database:
         self.cursor.execute(query)
         obj = self.cursor.fetchone()
         correct_option_id, question = obj
+        # TODO вынести чистку в отдельную функцию
         clear_data_query = f"""
             DELETE FROM buffer_question_statistics 
              WHERE user_name = '{user_name}'
@@ -213,6 +216,17 @@ class Database:
         """
         self.cursor.execute(clear_data_query)
         return correct_option_id, question
+
+    def get_user_question_poll_message_id(self, user_name: str):
+        # TODO объединить функцию с get_user_active_question_data()
+        query = f"""
+            SELECT poll_message_id
+              FROM buffer_question_statistics 
+             WHERE user_name = '{user_name}'
+        """
+        self.cursor.execute(query)
+        poll_message_id = self.cursor.fetchone() if not None else self.cursor.fetchone()[0]
+        return poll_message_id
 
     def check_user_answering_last_reqular_question(self, user_name: str):
         query = f"""
