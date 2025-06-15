@@ -128,20 +128,16 @@ class TGTestingBot(telebot.TeleBot):
 
     def send_empty_testing_answer(self, user_name: str, user_id: int, poll_question: str):
         with Database() as db:
-            is_user_testing = db.check_user_testing(user_name)
+            db.set_answer_to_testing_statistics(user_name, poll_question, False)
             current_question_number = db.get_user_testing_question_number(user_name)
         self.send_message(
             user_id,
             "❌ Ответ записан"
         )
-
-        if is_user_testing:
-            with Database() as db:
-                db.set_answer_to_testing_statistics(user_name, poll_question, False)
-            if current_question_number < TESTING_QUESTION_COUNT:
-                self.send_quiz(user_id, user_name, True)
-            else:
-                self.end_testing(user_id, user_name)
+        if current_question_number < TESTING_QUESTION_COUNT:
+            self.send_quiz(user_id, user_name, True)
+        else:
+            self.end_testing(user_id, user_name)
 
     def check_quiz_result(self, quiz_answer: types.PollAnswer):
         user_name = quiz_answer.user.username
