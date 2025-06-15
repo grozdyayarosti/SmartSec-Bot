@@ -137,6 +137,7 @@ class Database:
             VALUES('{user_name}', {question_id}, NULL)
         """
         self.cursor.execute(query)
+        self.conn.commit()
 
     def set_answer_to_testing_statistics(self, user_name: str, poll_question: str, is_correct: bool):
         query = f"""
@@ -170,7 +171,6 @@ class Database:
         self.cursor.execute(query)
         current_question_number = self.cursor.fetchone()[0]
         return current_question_number
-
 
     def check_answer_existing(self, user_name: str, question_id: int):
         # Если ответ на вопрос есть или вопроса в принципе нет, то ответ дан
@@ -213,3 +213,21 @@ class Database:
         """
         self.cursor.execute(clear_data_query)
         return correct_option_id, question
+
+    def check_user_answering_last_reqular_question(self, user_name: str):
+        query = f"""
+            select not exists(
+                SELECT 1 FROM buffer_question_statistics 
+                 WHERE user_name = '{user_name}'
+            )
+        """
+        self.cursor.execute(query)
+        is_answering_last_question = self.cursor.fetchone()[0]
+
+        if not is_answering_last_question:
+            delete_query = f"""
+                DELETE FROM public.buffer_question_statistics
+                 WHERE user_name = '{user_name}'
+            """
+            self.cursor.execute(delete_query)
+        return is_answering_last_question

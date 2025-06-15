@@ -8,9 +8,9 @@ from db_connection import Database
 from constants import TELEGRAM_BOT_TOKEN, TESTING_QUESTION_COUNT, TESTING_COMPLETE_RESULT, \
     ANSWER_TO_TESTING_QUESTION_TIME
 
-
-# TODO защита от игнора регулярных вопросов
 # TODO добавить смайлики на сообщения
+
+# TODO наказание за плохую статистику регулярных вопросов
 # TODO вычисление максимально старого вопроса для регулярной отправки
 # FIXME (после игнора и по дефолту "Ответ записан" мгновенный, после успевания за 10 сек "Ответ записан" приходится ждать 10 сек).
 #  Возможно придётся time.sleep() вывести в многопоток или асинк
@@ -43,7 +43,6 @@ class TGTestingBot(telebot.TeleBot):
             to_testing_btn = types.InlineKeyboardButton(text='Начать тестирование',
                                                      callback_data='go_testing')  # Добавление кнопки
             to_testing_markup = types.InlineKeyboardMarkup(row_width=1).add(to_testing_btn)
-            # to_home_markup.add(to_home_btn)
             self.send_message(
                 message.chat.id,
                 f"Вы ещё не прошли тестирование!\n\n"
@@ -111,6 +110,10 @@ class TGTestingBot(telebot.TeleBot):
             if not is_answering:
                 self.send_empty_testing_answer(user_name, user_id, question_data["question_text"])
         else:
+            with Database() as db:
+                is_answering_last_question = db.check_user_answering_last_reqular_question(user_name)
+            if not is_answering_last_question:
+                self.send_empty_reqular_answer(user_name, user_id, question_data["question_text"])
             poll_message = self.send_poll(
                 chat_id=user_id,
                 question=question_data["question_text"],
@@ -126,18 +129,30 @@ class TGTestingBot(telebot.TeleBot):
                                       question_data["question_text"],
                                       poll_message.poll.id)
 
-    def send_empty_testing_answer(self, user_name: str, user_id: int, poll_question: str):
+    def send_empty_testing_answer(self, user_name: str, user_id: int, question_text: str):
         with Database() as db:
-            db.set_answer_to_testing_statistics(user_name, poll_question, False)
+            db.set_answer_to_testing_statistics(user_name, question_text, False)
             current_question_number = db.get_user_testing_question_number(user_name)
         self.send_message(
             user_id,
-            "❌ Ответ записан"
+            "❌ Ответ записан (время истекло)"
         )
         if current_question_number < TESTING_QUESTION_COUNT:
             self.send_quiz(user_id, user_name, True)
         else:
             self.end_testing(user_id, user_name)
+
+    def send_empty_reqular_answer(self, user_name: str,  user_id: int, question_text: str):
+        with Database() as db:
+            db.send_testing_results_to_db(
+                user_name,
+                question_text,
+                False
+            )
+        self.send_message(
+            user_id,
+            "❌ Ответ записан (время истекло)"
+        )
 
     def check_quiz_result(self, quiz_answer: types.PollAnswer):
         user_name = quiz_answer.user.username
@@ -165,7 +180,6 @@ class TGTestingBot(telebot.TeleBot):
                 self.send_quiz(quiz_answer.user.id, user_name, True)
             else:
                 self.end_testing(quiz_answer.user.id, quiz_answer.user.username)
-
 
     @staticmethod
     def parse_answers_data(answers_data: list[tuple[Any, ...]]) -> dict:
