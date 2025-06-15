@@ -63,7 +63,7 @@ class TGTestingBot(telebot.TeleBot):
         self.send_message(user_id,f"Тестирование начато!")
 
         with Database() as db:
-            db.clear_user_testing_track(user_name)
+            db.clear_user_testing_statistics(user_name)
         self.send_quiz(user_id, user_name, True)
 
     def end_testing(self, user_id, user_name):
@@ -100,7 +100,7 @@ class TGTestingBot(telebot.TeleBot):
                 open_period=ANSWER_TO_TESTING_QUESTION_TIME
             )
             with Database() as db:
-                db.add_question_to_testing_track(user_name, question_id)
+                db.add_question_to_user_testing_statistics(user_name, question_id)
                 db.add_question_track(user_name,
                                       poll_message.poll.correct_option_id,
                                       question_data["question_text"],
@@ -137,7 +137,7 @@ class TGTestingBot(telebot.TeleBot):
 
         if is_user_testing:
             with Database() as db:
-                db.set_answer_to_testing_track(user_name, poll_question, False)
+                db.set_answer_to_testing_statistics(user_name, poll_question, False)
             if current_question_number < TESTING_QUESTION_COUNT:
                 self.send_quiz(user_id, user_name, True)
             else:
@@ -146,7 +146,7 @@ class TGTestingBot(telebot.TeleBot):
     def check_quiz_result(self, quiz_answer: types.PollAnswer | None):
         user_name = quiz_answer.user.username
         with Database() as db:
-            correct_option_id, poll_question = db.get_active_question_data(user_name, quiz_answer.poll_id)
+            correct_option_id, poll_question = db.get_user_active_question_data(user_name, quiz_answer.poll_id)
             is_correct_answer = correct_option_id == quiz_answer.option_ids[0]
             is_user_testing = db.check_user_testing(user_name)
             if is_user_testing:
@@ -164,7 +164,7 @@ class TGTestingBot(telebot.TeleBot):
 
         if is_user_testing:
             with Database() as db:
-                db.set_answer_to_testing_track(user_name, poll_question, is_correct_answer)
+                db.set_answer_to_testing_statistics(user_name, poll_question, is_correct_answer)
             if current_question_number < TESTING_QUESTION_COUNT:
                 self.send_quiz(quiz_answer.user.id, user_name, True)
             else:

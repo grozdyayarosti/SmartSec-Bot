@@ -37,39 +37,44 @@ class Database:
         self.cursor.execute(query)
 
     def check_testing_completeness(self, username: str) -> bool:
-        self.cursor.execute(f"SELECT is_completed FROM users WHERE login='{username}';")
+        query = f"""
+            SELECT is_completed FROM users
+             WHERE login='{username}'
+        """
+        self.cursor.execute(query)
         is_completed = self.cursor.fetchone()
         return is_completed[0]
 
     def calc_user_testing_result(self, user_name: str):
         query = f"""
             select count(*) 
-              from public.testing_track 
+              from buffer_testing_statistics 
              where user_name='{user_name}'
                and is_correct = true
         """
         self.cursor.execute(query)
         correct_answers_count = self.cursor.fetchone()[0]
-        self.clear_user_testing_track(user_name)
+        self.clear_user_testing_statistics(user_name)
         return correct_answers_count
 
     def set_testing_completed(self, is_completed: bool, username: str):
-        self.cursor.execute(f"""
+        query = f"""
             UPDATE users SET is_completed = {is_completed}
             WHERE
             id = (select id from users where login='{username}');
-        """)
+        """
+        self.cursor.execute(query)
 
     def get_user_statistics(self, username: str) -> tuple:
-        self.cursor.execute(f"""
+        query = f"""
             SELECT COUNT(*) AS total_count,
                    COUNT(*) FILTER(WHERE is_correct_answer) AS true_count
               FROM testing_results
-             WHERE user_id = (SELECT id FROM users WHERE login='{username}');
-        """)
+             WHERE user_id = (SELECT id FROM users WHERE login='{username}')
+        """
+        self.cursor.execute(query)
         user_statistics = self.cursor.fetchone()
         return user_statistics
-
 
     def get_quiz_question_data(self, is_user_testing: bool) -> dict[str: str]:
         if is_user_testing:
@@ -78,7 +83,7 @@ class Database:
                 FROM public.questions 
                WHERE is_required 
                  AND id NOT IN (SELECT question_id 
-                                  FROM testing_track)
+                                  FROM buffer_testing_statistics)
             """
             self.cursor.execute(query)
         else:
@@ -91,15 +96,14 @@ class Database:
                 "explanation": question[3]}
 
     def get_question_answers(self, question_id) -> list[tuple[Any, ...]]:
-        self.cursor.execute(
-            f"""
-                SELECT a.text, ar.is_correct 
-                  FROM answer_results ar 
-                       LEFT JOIN answers a 
-                            ON ar.answer_id = a.id
-                 WHERE ar.question_id = {question_id};
-            """
-        )
+        query = f"""
+            SELECT a.text, ar.is_correct 
+              FROM answer_results ar 
+                   LEFT JOIN answers a 
+                        ON ar.answer_id = a.id
+             WHERE ar.question_id = {question_id};
+        """
+        self.cursor.execute(query)
         answers = self.cursor.fetchall()
         return answers
 
@@ -120,23 +124,23 @@ class Database:
         '''
         self.cursor.execute(query)
 
-    def clear_user_testing_track(self, user_name: str):
+    def clear_user_testing_statistics(self, user_name: str):
         query = f"""
-                DELETE FROM testing_track WHERE user_name = '{user_name}'
+                DELETE FROM buffer_testing_statistics
+                 WHERE user_name = '{user_name}'
             """
         self.cursor.execute(query)
 
-    def add_question_to_testing_track(self, user_name: str, question_id: int):
+    def add_question_to_user_testing_statistics(self, user_name: str, question_id: int):
         query = f"""
-            INSERT INTO public.testing_track (user_name, question_id, is_correct)
+            INSERT INTO buffer_testing_statistics (user_name, question_id, is_correct)
             VALUES('{user_name}', {question_id}, NULL)
         """
         self.cursor.execute(query)
 
-    def set_answer_to_testing_track(self, user_name: str, poll_question: str, is_correct: bool):
-
+    def set_answer_to_testing_statistics(self, user_name: str, poll_question: str, is_correct: bool):
         query = f"""
-            UPDATE public.testing_track 
+            UPDATE buffer_testing_statistics 
                SET is_correct = {is_correct}
              where user_name = '{user_name}' 
                and question_id = (SELECT id 
@@ -149,7 +153,7 @@ class Database:
         query = f"""
             select exists(
                 select 1
-                  from testing_track
+                  from buffer_testing_statistics
                  where user_name = '{user_name}'
             )
         """
@@ -160,7 +164,7 @@ class Database:
     def get_user_testing_question_number(self, user_name: str):
         query = f"""
             select count(*)
-              from testing_track 
+              from buffer_testing_statistics 
              where user_name = '{user_name}'
         """
         self.cursor.execute(query)
@@ -174,7 +178,7 @@ class Database:
         query = f"""
             select not exists(
                 select 1
-                  from testing_track 
+                  from buffer_testing_statistics 
                  where user_name = '{user_name}'
                    and question_id = {question_id}
                    and is_correct IS NULL
@@ -186,16 +190,16 @@ class Database:
 
     def add_question_track(self, user_name: str, correct_option_id: int, question: str, poll_id: str):
         query = f"""
-            INSERT INTO active_question_track (user_name, correct_option_id, question, poll_id)
+            INSERT INTO buffer_question_statistics (user_name, correct_option_id, question, poll_id)
             VALUES('{user_name}', {correct_option_id}, '{question}', '{poll_id}')
         """
         self.cursor.execute(query)
         self.conn.commit()
 
-    def get_active_question_data(self, user_name: str, poll_id: str):
+    def get_user_active_question_data(self, user_name: str, poll_id: str):
         query = f"""
             SELECT correct_option_id, question
-              FROM public.active_question_track 
+              FROM buffer_question_statistics 
              WHERE user_name = '{user_name}'
                and poll_id = '{poll_id}'
         """
@@ -203,7 +207,7 @@ class Database:
         obj = self.cursor.fetchone()
         correct_option_id, question = obj
         clear_data_query = f"""
-            DELETE FROM public.active_question_track 
+            DELETE FROM buffer_question_statistics 
              WHERE user_name = '{user_name}'
                AND poll_id = '{poll_id}'
         """
