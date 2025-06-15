@@ -85,6 +85,7 @@ class TGTestingBot(telebot.TeleBot):
             question_id = question_data["question_id"]
             raw_answers_data = db.get_question_answers(question_id)
 
+        # Перемешивание вариантов ответа
         random.shuffle(raw_answers_data)
         answers_data = self.parse_answers_data(raw_answers_data)
 
@@ -124,7 +125,6 @@ class TGTestingBot(telebot.TeleBot):
                                       poll_message.poll.correct_option_id,
                                       question_data["question_text"],
                                       poll_message.poll.id)
-        # self.active_quizzes[user_name] = poll_message.poll
 
     def send_empty_testing_answer(self, user_name: str, user_id: int, poll_question: str):
         with Database() as db:
@@ -143,7 +143,7 @@ class TGTestingBot(telebot.TeleBot):
             else:
                 self.end_testing(user_id, user_name)
 
-    def check_quiz_result(self, quiz_answer: types.PollAnswer | None):
+    def check_quiz_result(self, quiz_answer: types.PollAnswer):
         user_name = quiz_answer.user.username
         with Database() as db:
             correct_option_id, poll_question = db.get_user_active_question_data(user_name, quiz_answer.poll_id)
