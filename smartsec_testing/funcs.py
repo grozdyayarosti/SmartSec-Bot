@@ -24,6 +24,7 @@ class TGTestingBot(telebot.TeleBot):
             db.user_registration(message.chat.username)
             is_completed = db.check_testing_completeness(message.chat.username)
             total_count, correct_count = db.get_user_statistics(message.chat.username)
+        total_percentages = 100 * correct_count / (total_count if total_count > 0 else 1)
 
         self.send_message(
             message.chat.id,
@@ -37,7 +38,7 @@ class TGTestingBot(telebot.TeleBot):
                 message.chat.id,
                 f"Вы прошли тестирование! Ожидайте регулярных вопросов...\n\n"
                 f"📊 Ваша статистика:\n<b>✍️ {correct_count}/{total_count} "
-                f"({float(f'{100 * correct_count/total_count:.2f}')})%</b>",
+                f"({float(f'{total_percentages:.2f}')})%</b>",
                 parse_mode='html')
         else:
             to_testing_btn = types.InlineKeyboardButton(text='Начать тестирование',
@@ -47,7 +48,7 @@ class TGTestingBot(telebot.TeleBot):
                 message.chat.id,
                 f"Вы ещё не прошли тестирование!\n\n"
                 f"📊 Ваша статистика:\n<b>✍️ {correct_count}/{total_count} "
-                f"({float(f'{100 * correct_count/total_count:.2f}')}%)</b>",
+                f"({float(f'{total_percentages:.2f}')}%)</b>",
                 parse_mode='html',
                 reply_markup=to_testing_markup)
 
