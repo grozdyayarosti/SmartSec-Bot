@@ -14,6 +14,7 @@ PG_PASSWORD = os.environ.get('PG_PASSWORD')
 PG_DBNAME = os.environ.get('PG_DBNAME')
 MY_ID = os.environ.get('MY_ID')
 MY_NAME = os.environ.get('MY_NAME')
+FLASK_ADMIN_PORT = os.environ.get('FLASK_ADMIN_PORT')
 FLASK_SECRET_KEY = os.environ.get('FLASK_SECRET_KEY')
 # WEBHOOK_URL = "https://discernibly-great-dowitcher.cloudpub.ru/webhook"
 WEBHOOK_URL = os.environ.get('WEBHOOK_URL') + "/webhook"
