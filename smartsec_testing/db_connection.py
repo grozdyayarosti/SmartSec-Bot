@@ -86,32 +86,73 @@ class Database:
         is_loss_completeness = (self.cursor.fetchone()[0] == True and free_for_testing == False)
         return is_loss_completeness
 
-    def get_user_statistics(self, username: str) -> tuple:
+    def get_user_statistics(self, user_name: str) -> tuple:
         query = f"""
             SELECT COUNT(*) AS total_count,
                    COUNT(*) FILTER(WHERE is_correct_answer) AS true_count
               FROM user_results
-             WHERE user_id = (SELECT id FROM users WHERE login='{username}')
+             WHERE user_id = (SELECT id FROM users WHERE login='{user_name}')
         """
         self.cursor.execute(query)
         user_statistics = self.cursor.fetchone()
         return user_statistics
 
-    def get_quiz_question_data(self, is_user_testing: bool) -> dict[str: str]:
+    def get_quiz_question_data(self, user_name: str, is_user_testing: bool) -> dict[str: str]:
         if is_user_testing:
-            query = """
-              SELECT id, text, is_required, explanation 
+            query = f"""
+              SELECT id, text, is_required, explanation
                 FROM public.questions 
                WHERE is_required 
                  AND id NOT IN (SELECT question_id 
-                                  FROM buffer_testing_statistics)
+                                  FROM buffer_testing_statistics
+                                 WHERE user_name = '{user_name}')
             ORDER BY RANDOM()
                LIMIT 1
             """
             self.cursor.execute(query)
         else:
-            random_number = random.randint(1, 3)
-            self.cursor.execute(f"SELECT * FROM questions WHERE id={random_number}")
+            # Выбирает либо самый давно задаваемый вопрос(из user_results и buffer_regular_statistics), либо случайный
+            # TODO переписать запрос более красиво через WITH
+            query = f"""
+                SELECT id, text, is_required, explanation
+                FROM questions
+                WHERE id = COALESCE(
+                    (
+                        SELECT id
+                          FROM questions
+                         WHERE NOT is_required
+                           AND id NOT IN (
+                               SELECT DISTINCT question_id 
+                                 FROM user_results
+                                WHERE user_id = (
+                                    SELECT id 
+                                      FROM users 
+                                     WHERE login = '{user_name}'
+                                )
+
+                               UNION ALL
+
+                               SELECT id 
+                                 FROM questions
+                                WHERE text = (
+                                    SELECT question 
+                                      FROM buffer_regular_statistics
+                                     WHERE user_name = '{user_name}'
+                                )
+                          )
+                      ORDER BY RANDOM()
+                         LIMIT 1
+                    ),
+                    (
+                        SELECT id
+                          FROM questions
+                         WHERE NOT is_required
+                      ORDER BY RANDOM()
+                         LIMIT 1
+                    )
+                )
+            """
+            self.cursor.execute(query)
         question = self.cursor.fetchone()
         return {"question_id": question[0],
                 "question_text": question[1],

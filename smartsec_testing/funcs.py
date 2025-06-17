@@ -95,7 +95,7 @@ class TGTestingBot(telebot.TeleBot):
 
     def send_quiz(self, user_id: int, user_name: str, is_user_testing: bool):
         with Database() as db:
-            question_data    = db.get_quiz_question_data(is_user_testing)
+            question_data    = db.get_quiz_question_data(user_name, is_user_testing)
             question_id      = question_data["question_id"]
             raw_answers_data = db.get_question_answers(question_id)
         # Перемешивание вариантов ответа
