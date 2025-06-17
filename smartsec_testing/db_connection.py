@@ -88,13 +88,14 @@ class Database:
 
     def get_quiz_question_data(self, is_user_testing: bool) -> dict[str: str]:
         if is_user_testing:
-            # FIXME выбирать требуемый вопрос в случайном порядке
             query = """
               SELECT id, text, is_required, explanation 
                 FROM public.questions 
                WHERE is_required 
                  AND id NOT IN (SELECT question_id 
                                   FROM buffer_testing_statistics)
+            ORDER BY RANDOM()
+               LIMIT 1
             """
             self.cursor.execute(query)
         else:
