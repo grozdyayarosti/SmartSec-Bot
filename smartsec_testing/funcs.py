@@ -36,8 +36,9 @@ class TGTestingBot(telebot.TeleBot):
         if is_completed:
             self.send_message(
                 message.chat.id,
-                f"Вы прошли тестирование! Ожидайте регулярных вопросов...\n\n"
-                f"📊 Ваша статистика:\n<b>✍️ {correct_count}/{total_count} "
+                f"Вы прошли тестирование!\n"
+                f"Ожидайте регулярных вопросов...\n\n"
+                f"📊 Ваша статистика по регулярным вопросам:\n<b>✍️ {correct_count}/{total_count} "
                 f"({float(f'{total_percentages:.2f}')})%</b>",
                 parse_mode='html')
         else:
@@ -47,7 +48,7 @@ class TGTestingBot(telebot.TeleBot):
             self.send_message(
                 message.chat.id,
                 f"Вы ещё не прошли тестирование!\n\n"
-                f"📊 Ваша статистика:\n<b>✍️ {correct_count}/{total_count} "
+                f"📊 Ваша статистика по регулярным вопросам:\n<b>✍️ {correct_count}/{total_count} "
                 f"({float(f'{total_percentages:.2f}')}%)</b>",
                 parse_mode='html',
                 reply_markup=to_testing_markup)
