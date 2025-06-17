@@ -3,9 +3,9 @@ from flask_admin import Admin, AdminIndexView, expose, BaseView
 from flask_sqlalchemy import SQLAlchemy
 from flask_admin.contrib.sqla import ModelView
 
-from models import User, Question, Answer, TestingResult, AnswerResult
+from models import User, Question, Answer, UserResult, QuestionAnswerMap
 from model_views import AnswerResultsView, TestingResultsView, UserView
-from smartsec_testing.constants import PG_USER, PG_PASSWORD, PG_HOST, PG_DBNAME, FLASK_SECRET_KEY
+from smartsec_testing.constants import PG_USER, PG_PASSWORD, PG_HOST, PG_DBNAME, FLASK_SECRET_KEY, FLASK_ADMIN_PORT
 
 
 class StatsView(BaseView):
@@ -41,10 +41,10 @@ admin = Admin(app,
 admin.add_view(StatsView(name='Statistics', endpoint='statistics'))
 admin.add_view(ModelView(Question, db.session))
 admin.add_view(ModelView(Answer, db.session))
-admin.add_view(AnswerResultsView(AnswerResult, db.session))
+admin.add_view(AnswerResultsView(QuestionAnswerMap, db.session))
 admin.add_view(UserView(User, db.session))
-admin.add_view(TestingResultsView(TestingResult, db.session))
+admin.add_view(TestingResultsView(UserResult, db.session))
 
 
 if __name__ == '__main__':
-    app.run()
+    app.run(port=FLASK_ADMIN_PORT)

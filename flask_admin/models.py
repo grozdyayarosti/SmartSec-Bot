@@ -10,6 +10,7 @@ class User(BaseModel):
     __tablename__ = "users"
 
     id = Column(Integer, primary_key=True)
+    chat_id = Column(Integer)
     login = Column(String)
     is_completed = Column(Boolean)
     def __str__(self):
@@ -36,7 +37,7 @@ class Answer(BaseModel):
         return f"{self.id}. {self.text}"
 
 
-class AnswerResult(BaseModel):
+class QuestionAnswerMap(BaseModel):
     __tablename__ = "question_answer_map"
 
     id = Column(Integer, primary_key=True)
@@ -47,7 +48,7 @@ class AnswerResult(BaseModel):
     is_correct = Column(Boolean)
 
 
-class TestingResult(BaseModel):
+class UserResult(BaseModel):
     __tablename__ = "user_results"
 
     id = Column(Integer, primary_key=True)

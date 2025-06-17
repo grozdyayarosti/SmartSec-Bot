@@ -32,9 +32,9 @@ class TestingResultsView(ModelView):
 
 
 class UserView(ModelView):
-    column_list = ['id', 'login', 'is_completed']
+    column_list = ['id', 'login', 'chat_id', 'is_completed']
     column_sortable_list = (
-        'id', 'login', 'is_completed'
+        'id', 'login', 'chat_id', 'is_completed'
     )
     can_create = False
     can_edit = False
