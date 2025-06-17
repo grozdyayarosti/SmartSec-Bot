@@ -37,7 +37,7 @@ class Answer(BaseModel):
 
 
 class AnswerResult(BaseModel):
-    __tablename__ = "answer_results"
+    __tablename__ = "question_answer_map"
 
     id = Column(Integer, primary_key=True)
     question_id = Column(Integer, ForeignKey('questions.id'))
@@ -48,7 +48,7 @@ class AnswerResult(BaseModel):
 
 
 class TestingResult(BaseModel):
-    __tablename__ = "testing_results"
+    __tablename__ = "user_results"
 
     id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey('users.id'))

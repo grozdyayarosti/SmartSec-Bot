@@ -153,7 +153,7 @@ class TGTestingBot(telebot.TeleBot):
                 message_id=poll_message_id
             )
         with Database() as db:
-            db.send_testing_results_to_db(
+            db.send_user_regular_results_to_db(
                 user_name,
                 question_text,
                 False
@@ -177,7 +177,7 @@ class TGTestingBot(telebot.TeleBot):
                 last_regular_question_data = db.get_user_regular_question_data(user_name)
                 db.clear_user_regular_questions(user_name)
                 is_correct_answer = last_regular_question_data["correct_option_id"] == quiz_answer.option_ids[0]
-                db.send_testing_results_to_db(
+                db.send_user_regular_results_to_db(
                     user_name,
                     last_regular_question_data["question_text"],
                     is_correct_answer

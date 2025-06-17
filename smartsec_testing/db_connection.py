@@ -69,7 +69,7 @@ class Database:
         query = f"""
             SELECT COUNT(*) AS total_count,
                    COUNT(*) FILTER(WHERE is_correct_answer) AS true_count
-              FROM testing_results
+              FROM user_results
              WHERE user_id = (SELECT id FROM users WHERE login='{username}')
         """
         self.cursor.execute(query)
@@ -99,7 +99,7 @@ class Database:
     def get_question_answers(self, question_id) -> list[tuple[Any, ...]]:
         query = f"""
             SELECT a.text, ar.is_correct 
-              FROM answer_results ar 
+              FROM question_answer_map ar 
                    LEFT JOIN answers a 
                         ON ar.answer_id = a.id
              WHERE ar.question_id = {question_id};
@@ -108,10 +108,10 @@ class Database:
         answers = self.cursor.fetchall()
         return answers
 
-    def send_testing_results_to_db(self, username, poll_question, is_correct_answer):
+    def send_user_regular_results_to_db(self, username, poll_question, is_correct_answer):
         date = datetime.date.today()
         query = f'''
-            INSERT INTO testing_results(user_id, question_id, is_correct_answer, answer_date)
+            INSERT INTO user_results(user_id, question_id, is_correct_answer, answer_date)
                    VALUES(
                        (SELECT id
                           FROM public.users
@@ -194,7 +194,7 @@ class Database:
     def add_question_to_buffer_statistics(self, user_name: str, correct_option_id: int,
                                           question: str, poll_id: str, message_id: int):
         query = f"""
-            INSERT INTO buffer_question_statistics (user_name, correct_option_id, question, poll_id, poll_message_id)
+            INSERT INTO buffer_regular_statistics (user_name, correct_option_id, question, poll_id, poll_message_id)
             VALUES('{user_name}', {correct_option_id}, '{question}', '{poll_id}', {message_id})
         """
         self.cursor.execute(query)
@@ -213,7 +213,7 @@ class Database:
 
     def clear_user_regular_questions(self, user_name: str):
         clear_data_query = f"""
-            DELETE FROM buffer_question_statistics 
+            DELETE FROM buffer_regular_statistics 
              WHERE user_name = '{user_name}'
         """
         self.cursor.execute(clear_data_query)
@@ -221,7 +221,7 @@ class Database:
     def get_user_regular_question_data(self, user_name: str):
         query = f"""
             SELECT correct_option_id, poll_message_id, question
-              FROM buffer_question_statistics 
+              FROM buffer_regular_statistics 
              WHERE user_name = '{user_name}'
         """
         self.cursor.execute(query)
@@ -234,7 +234,7 @@ class Database:
     def check_user_answering_last_reqular_question(self, user_name: str):
         query = f"""
             select not exists(
-                SELECT 1 FROM buffer_question_statistics 
+                SELECT 1 FROM buffer_regular_statistics 
                  WHERE user_name = '{user_name}'
             )
         """
@@ -243,7 +243,7 @@ class Database:
 
         if not is_answering_last_question:
             delete_query = f"""
-                DELETE FROM public.buffer_question_statistics
+                DELETE FROM public.buffer_regular_statistics
                  WHERE user_name = '{user_name}'
             """
             self.cursor.execute(delete_query)
