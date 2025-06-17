@@ -3,11 +3,11 @@ import schedule
 from aiogram import Bot, Dispatcher
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.schedulers.background import BackgroundScheduler
-from constants import MY_NAME, MY_ID, REGULAR_QUESTIONS_PERIOD
+from constants import REGULAR_QUESTIONS_PERIOD
 import time
 import datetime
 
-from smartsec_testing.constants import MY_ID, MY_NAME
+from smartsec_testing.db_connection import Database
 from smartsec_testing.funcs import TGTestingBot
 
 
@@ -17,7 +17,10 @@ class SmartSecScheduler:
         self.bot = bot
 
     def send_scheduled_message(self):
-        self.bot.send_quiz(MY_ID, MY_NAME, False)
+        with Database() as db:
+            users = db.get_all_users_for_reqular_questions()
+        for user in users:
+            self.bot.send_quiz(user['chat_id'], user['user_name'], False)
         print(f'[{str(datetime.datetime.now().time()).split(".")[0]}]'
               f' - SCHEDULE sending quiz...')
 

@@ -11,7 +11,6 @@ from constants import TELEGRAM_BOT_TOKEN, TESTING_QUESTION_COUNT, TESTING_COMPLE
 
 # TODO добавить смайлики на сообщения
 
-# TODO наказание за плохую статистику регулярных вопросов
 # TODO вычисление максимально старого вопроса для регулярной отправки
 # FIXME (после игнора и по дефолту "Ответ записан" мгновенный, после успевания за 10 сек "Ответ записан" приходится ждать 10 сек).
 #  Возможно придётся time.sleep() вывести в многопоток или асинк
@@ -22,7 +21,7 @@ class TGTestingBot(telebot.TeleBot):
     def start_bot(self, message: types.Message):
 
         with Database() as db:
-            db.user_registration(message.chat.username)
+            db.user_registration(message.chat.username, message.chat.id)
             is_completed = db.check_testing_completeness(message.chat.username)
             total_count, correct_count = db.get_user_statistics(message.chat.username)
         total_percentages = 100 * correct_count / (total_count if total_count > 0 else 1)

@@ -26,10 +26,21 @@ class Database:
         self.conn.commit()
         self.conn.close()
 
-    def user_registration(self, user_name: str):
+    def get_all_users_for_reqular_questions(self):
         query = f"""
-        INSERT INTO users (login, is_completed)
-            SELECT '{user_name}', False
+            SELECT login, chat_id
+              FROM users
+             WHERE is_completed
+        """
+        self.cursor.execute(query)
+        users = self.cursor.fetchall()
+        users_dict = [{'user_name': user[0], 'chat_id': user[1]} for user in users]
+        return users_dict
+
+    def user_registration(self, user_name: str, chat_id: int):
+        query = f"""
+        INSERT INTO users (login, chat_id, is_completed)
+            SELECT '{user_name}', {chat_id}, False
             WHERE NOT EXISTS (
                 SELECT 1 FROM users WHERE login = '{user_name}'
             )
