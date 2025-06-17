@@ -57,13 +57,23 @@ class Database:
         self.clear_user_testing_statistics(user_name)
         return correct_answers_count
 
-    def set_testing_completed(self, is_completed: bool, username: str):
+    def set_testing_completed(self, is_completed: bool, user_name: str):
         query = f"""
             UPDATE users SET is_completed = {is_completed}
             WHERE
-            id = (select id from users where login='{username}');
+            id = (select id from users where login='{user_name}')
         """
         self.cursor.execute(query)
+
+    def checking_user_loss_completeness(self, free_for_testing: bool, user_name: str):
+        checking_loss_query = f"""
+            SELECT is_completed 
+              FROM users
+             WHERE id = (SELECT id FROM users WHERE login = '{user_name}')
+        """
+        self.cursor.execute(checking_loss_query)
+        is_loss_completeness = (self.cursor.fetchone()[0] == True and free_for_testing == False)
+        return is_loss_completeness
 
     def get_user_statistics(self, username: str) -> tuple:
         query = f"""
@@ -174,6 +184,15 @@ class Database:
         self.cursor.execute(query)
         current_question_number = self.cursor.fetchone()[0]
         return current_question_number
+
+    def clear_user_results(self, user_name: str):
+        clear_data_query = f"""
+            DELETE FROM user_results 
+             WHERE user_id = (select id 
+                                from users 
+                               where login = '{user_name}')
+        """
+        self.cursor.execute(clear_data_query)
 
     def check_answer_existing(self, user_name: str, question_id: int):
         # Если ответ на вопрос есть или вопроса в принципе нет, то ответ дан

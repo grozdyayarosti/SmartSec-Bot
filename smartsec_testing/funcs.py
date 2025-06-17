@@ -6,7 +6,8 @@ import time
 
 from db_connection import Database
 from constants import TELEGRAM_BOT_TOKEN, TESTING_QUESTION_COUNT, TESTING_COMPLETE_RESULT, \
-    ANSWER_TO_TESTING_QUESTION_TIME
+    ANSWER_TO_TESTING_QUESTION_TIME, REGULAR_COMPLETE_RESULT
+
 
 # TODO добавить смайлики на сообщения
 
@@ -66,18 +67,32 @@ class TGTestingBot(telebot.TeleBot):
             db.clear_user_testing_statistics(user_name)
         self.send_quiz(user_id, user_name, True)
 
-    def end_testing(self, user_id, user_name):
+    def end_testing(self, user_id: int, user_name: str):
         self.send_message(user_id,f"Тестирование окончено!")
         with Database() as db:
             correct_answers_count = db.calc_user_testing_result(user_name)
             result = round(correct_answers_count / TESTING_QUESTION_COUNT, 4)
             is_complete = result >= TESTING_COMPLETE_RESULT
             db.set_testing_completed(is_complete, user_name)
+            db.clear_user_results(user_name)
         result_text = "Вы успешно сдали тестирование!" if is_complete else "Вы провалили тестирование!"
         self.send_message(
             user_id,
             result_text,
             parse_mode='html')
+
+    def recalculating_statistics(self, user_id: int, user_name: str):
+        with Database() as db:
+            total_count, correct_count = db.get_user_statistics(user_name)
+        if total_count >= 10:
+            with Database() as db:
+                is_completed = (correct_count / total_count) > REGULAR_COMPLETE_RESULT
+                is_loss_completeness = db.checking_user_loss_completeness(is_completed, user_name)
+                if is_loss_completeness:
+                    db.set_testing_completed(is_completed, user_name)
+                    self.send_message(user_id, f"⚠️⚠️⚠️\n"
+                                               f"Ваша статистика правильных ответов упала ниже 60%!\n"
+                                           f"Необходимо заново пройти тестирование")
 
     def send_quiz(self, user_id: int, user_name: str, is_user_testing: bool):
         with Database() as db:
@@ -162,6 +177,7 @@ class TGTestingBot(telebot.TeleBot):
             user_id,
             "❌ Ответ записан (время истекло)"
         )
+        self.recalculating_statistics(user_id, user_name)
 
     def check_quiz_result(self, quiz_answer: types.PollAnswer):
         user_name = quiz_answer.user.username
@@ -194,6 +210,8 @@ class TGTestingBot(telebot.TeleBot):
                 self.send_quiz(quiz_answer.user.id, user_name, True)
             else:
                 self.end_testing(quiz_answer.user.id, quiz_answer.user.username)
+        else:
+            self.recalculating_statistics(quiz_answer.user.id, user_name)
 
     @staticmethod
     def parse_answers_data(answers_data: list[tuple[Any, ...]]) -> dict:
