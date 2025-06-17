@@ -21,8 +21,8 @@ class SmartSecScheduler:
             users = db.get_all_users_for_reqular_questions()
         for user in users:
             self.bot.send_quiz(user['chat_id'], user['user_name'], False)
-        print(f'[{str(datetime.datetime.now().time()).split(".")[0]}]'
-              f' - SCHEDULE sending quiz...')
+            print(f'[{str(datetime.datetime.now().time()).split(".")[0]}]'
+                  f' - SCHEDULE sending quiz to {user["user_name"]}...')
 
     def start_scheduler(self):
         self.scheduler = BackgroundScheduler()
