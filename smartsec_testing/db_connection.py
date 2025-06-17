@@ -78,6 +78,7 @@ class Database:
 
     def get_quiz_question_data(self, is_user_testing: bool) -> dict[str: str]:
         if is_user_testing:
+            # FIXME выбирать требуемый вопрос в случайном порядке
             query = """
               SELECT id, text, is_required, explanation 
                 FROM public.questions 
@@ -126,27 +127,29 @@ class Database:
 
     def clear_user_testing_statistics(self, user_name: str):
         query = f"""
-                DELETE FROM buffer_testing_statistics
-                 WHERE user_name = '{user_name}'
-            """
+            DELETE FROM buffer_testing_statistics
+             WHERE user_name = '{user_name}'
+        """
         self.cursor.execute(query)
 
-    def add_question_to_user_testing_statistics(self, user_name: str, question_id: int):
+    def add_question_to_user_testing_statistics(self,
+                                                user_name: str,
+                                                question_id: int,
+                                                correct_option_id: int,
+                                                poll_id: str):
         query = f"""
-            INSERT INTO buffer_testing_statistics (user_name, question_id, is_correct)
-            VALUES('{user_name}', {question_id}, NULL)
+            INSERT INTO buffer_testing_statistics (user_name, question_id, is_correct, correct_option_id, poll_id)
+            VALUES('{user_name}', {question_id}, NULL, {correct_option_id}, '{poll_id}')
         """
         self.cursor.execute(query)
         self.conn.commit()
 
-    def set_answer_to_testing_statistics(self, user_name: str, poll_question: str, is_correct: bool):
+    def set_answer_to_testing_statistics(self, user_name: str, question_id: int, is_correct: bool):
         query = f"""
             UPDATE buffer_testing_statistics 
                SET is_correct = {is_correct}
              where user_name = '{user_name}' 
-               and question_id = (SELECT id 
-                                    FROM public.questions 
-                                   WHERE text = '{poll_question}')
+               and question_id = {question_id}
         """
         self.cursor.execute(query)
 
@@ -197,36 +200,36 @@ class Database:
         self.cursor.execute(query)
         self.conn.commit()
 
-    def get_user_active_question_data(self, user_name: str, poll_id: str):
-        # TODO здесь нужен poll_id?
+    def get_user_testing_question_data(self, user_name: str, poll_id: str):
         query = f"""
-            SELECT correct_option_id, question
-              FROM buffer_question_statistics 
+            SELECT correct_option_id, question_id
+              FROM buffer_testing_statistics 
              WHERE user_name = '{user_name}'
                and poll_id = '{poll_id}'
         """
         self.cursor.execute(query)
-        obj = self.cursor.fetchone()
-        correct_option_id, question = obj
-        # TODO вынести чистку в отдельную функцию
+        correct_option_id, question_id = self.cursor.fetchone()
+        return correct_option_id, question_id
+
+    def clear_user_regular_questions(self, user_name: str):
         clear_data_query = f"""
             DELETE FROM buffer_question_statistics 
              WHERE user_name = '{user_name}'
-               AND poll_id = '{poll_id}'
         """
         self.cursor.execute(clear_data_query)
-        return correct_option_id, question
 
-    def get_user_question_poll_message_id(self, user_name: str):
-        # TODO объединить функцию с get_user_active_question_data()
+    def get_user_regular_question_data(self, user_name: str):
         query = f"""
-            SELECT poll_message_id
+            SELECT correct_option_id, poll_message_id, question
               FROM buffer_question_statistics 
              WHERE user_name = '{user_name}'
         """
         self.cursor.execute(query)
-        poll_message_id = self.cursor.fetchone() if not None else self.cursor.fetchone()[0]
-        return poll_message_id
+        res = self.cursor.fetchone()
+        correct_option_id, poll_message_id, question_text = res if res is not None else (None, None, None)
+        return {"correct_option_id": correct_option_id,
+                "poll_message_id": poll_message_id,
+                "question_text": question_text}
 
     def check_user_answering_last_reqular_question(self, user_name: str):
         query = f"""

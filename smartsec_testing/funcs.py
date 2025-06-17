@@ -81,10 +81,9 @@ class TGTestingBot(telebot.TeleBot):
 
     def send_quiz(self, user_id: int, user_name: str, is_user_testing: bool):
         with Database() as db:
-            question_data = db.get_quiz_question_data(is_user_testing)
-            question_id = question_data["question_id"]
+            question_data    = db.get_quiz_question_data(is_user_testing)
+            question_id      = question_data["question_id"]
             raw_answers_data = db.get_question_answers(question_id)
-
         # Перемешивание вариантов ответа
         random.shuffle(raw_answers_data)
         answers_data = self.parse_answers_data(raw_answers_data)
@@ -101,22 +100,23 @@ class TGTestingBot(telebot.TeleBot):
                 open_period=ANSWER_TO_TESTING_QUESTION_TIME
             )
             with Database() as db:
-                db.add_question_to_user_testing_statistics(user_name, question_id)
-                db.add_question_to_buffer_statistics(user_name,
-                                                     poll_message.poll.correct_option_id,
-                                                     question_data["question_text"],
-                                                     poll_message.poll.id,
-                                                     poll_message.message_id)
+                db.add_question_to_user_testing_statistics(user_name,
+                                                           question_id,
+                                                           poll_message.poll.correct_option_id,
+                                                           poll_message.poll.id)
                 time.sleep(ANSWER_TO_TESTING_QUESTION_TIME)
                 is_answering = db.check_answer_existing(user_name, question_id)
             if not is_answering:
-                self.send_empty_testing_answer(user_name, user_id, question_data["question_text"])
+                self.send_empty_testing_answer(user_name, user_id, question_id)
         else:
             with Database() as db:
-                poll_message_id = db.get_user_question_poll_message_id(user_name)
+                last_regular_question_data = db.get_user_regular_question_data(user_name)
                 is_answering_last_question = db.check_user_answering_last_reqular_question(user_name)
             if not is_answering_last_question:
-                self.send_empty_reqular_answer(user_name, user_id, question_data["question_text"], poll_message_id)
+                self.send_empty_reqular_answer(user_name,
+                                               user_id,
+                                               last_regular_question_data["question_text"],
+                                               last_regular_question_data["poll_message_id"])
             poll_message = self.send_poll(
                 chat_id=user_id,
                 question=question_data["question_text"],
@@ -133,9 +133,9 @@ class TGTestingBot(telebot.TeleBot):
                                                      poll_message.poll.id,
                                                      poll_message.message_id)
 
-    def send_empty_testing_answer(self, user_name: str, user_id: int, question_text: str):
+    def send_empty_testing_answer(self, user_name: str, user_id: int, question_id: int):
         with Database() as db:
-            db.set_answer_to_testing_statistics(user_name, question_text, False)
+            db.set_answer_to_testing_statistics(user_name, question_id, False)
             current_question_number = db.get_user_testing_question_number(user_name)
         self.send_message(
             user_id,
@@ -166,15 +166,20 @@ class TGTestingBot(telebot.TeleBot):
     def check_quiz_result(self, quiz_answer: types.PollAnswer):
         user_name = quiz_answer.user.username
         with Database() as db:
-            correct_option_id, poll_question = db.get_user_active_question_data(user_name, quiz_answer.poll_id)
-            is_correct_answer = correct_option_id == quiz_answer.option_ids[0]
             is_user_testing = db.check_user_testing(user_name)
             if is_user_testing:
+                correct_option_id, poll_question_id = db.get_user_testing_question_data(
+                    user_name,
+                    quiz_answer.poll_id)
+                is_correct_answer = correct_option_id == quiz_answer.option_ids[0]
                 current_question_number = db.get_user_testing_question_number(user_name)
             else:
+                last_regular_question_data = db.get_user_regular_question_data(user_name)
+                db.clear_user_regular_questions(user_name)
+                is_correct_answer = last_regular_question_data["correct_option_id"] == quiz_answer.option_ids[0]
                 db.send_testing_results_to_db(
                     user_name,
-                    poll_question,
+                    last_regular_question_data["question_text"],
                     is_correct_answer
                 )
         self.send_message(
@@ -184,7 +189,7 @@ class TGTestingBot(telebot.TeleBot):
 
         if is_user_testing:
             with Database() as db:
-                db.set_answer_to_testing_statistics(user_name, poll_question, is_correct_answer)
+                db.set_answer_to_testing_statistics(user_name, poll_question_id, is_correct_answer)
             if current_question_number < TESTING_QUESTION_COUNT:
                 self.send_quiz(quiz_answer.user.id, user_name, True)
             else:
