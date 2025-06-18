@@ -1,6 +1,10 @@
+import random
+import string
+
 import requests
 import telebot
 from telebot import types
+import time
 
 from constants import MISTRAL_API_KEY, TELEGRAM_BOT_TOKEN
 
@@ -20,23 +24,6 @@ class TGHelpBot(telebot.TeleBot):
             reply_markup=self.markUpSave('start')
         )
 
-    def send_start_menu(self, message: types.Message):
-        if message.chat.type == 'private':
-            match message.text:
-                case 'Вопрос по ИБ':
-                    reply_message = self.send_message(
-                        message.chat.id,
-                        "Задайте вопрос по ИБ",
-                        reply_markup=self.markUpSave('empty')
-                    )
-                    self.register_next_step_handler(reply_message, self.send_infosec_answer)
-
-                case _:
-                    self.send_message(
-                        message.chat.id,
-                        "К сожалению, я могу вам ответить только на предложенные команды🥺"
-                    )
-
     def send_infosec_answer(self, message: types.Message):
         delete_keyboard_msg = self.send_message(message.chat.id, 'Пожалуйста, подождите . . . ',
                                                reply_markup=types.ReplyKeyboardRemove())
@@ -50,6 +37,37 @@ class TGHelpBot(telebot.TeleBot):
             reply_markup=self.markUpSave('start'),
             parse_mode='MarkdownV2'
         )
+
+    def passwords_handling(self, message):
+        kb = types.InlineKeyboardMarkup(row_width=1)
+        btn_easy = types.InlineKeyboardButton(text='Слабый пароль',
+                                              callback_data='easy password')
+        btn_medium = types.InlineKeyboardButton(text='Хороший пароль',
+                                                callback_data='medium password')
+        btn_hard = types.InlineKeyboardButton(text='Сильный пароль',
+                                              callback_data='hard password')
+        kb.add(btn_easy, btn_medium, btn_hard)
+
+        # self.delete_ReplyKeyboard(message)
+        self.send_message(message.chat.id,
+                         f'Какой пароль сгенерировать?',
+                         reply_markup=kb)
+
+    @staticmethod
+    def get_password(password_type):
+        if password_type == 'easy password':
+            with open('./smartsec_bot/txt_files/passwords.txt', 'r') as f:
+                lines = f.readlines()
+            password = "Слабый пароль:  " + random.choice(lines).strip()
+        elif password_type == 'medium password':
+            length = random.randint(6, 8)
+            characters = string.ascii_letters + string.digits
+            password = "Хороший пароль:  " + ''.join(random.choice(characters) for _ in range(length))
+        elif password_type == 'hard password':
+            length = random.randint(9, 12)
+            characters = string.ascii_letters + string.digits + string.punctuation
+            password = "Сильный пароль:  " + ''.join(random.choice(characters) for _ in range(length))
+        return password
 
     @staticmethod
     def ask_mistral(prompt: str) -> str:
@@ -98,11 +116,19 @@ class TGHelpBot(telebot.TeleBot):
     # Функция, которая в зависимости от полученного параметра создаёт markup - альетарнативную клавиатуру с разными вариантами ответа
     @staticmethod
     def markUpSave(mode: str) -> types.ReplyKeyboardMarkup:
-        markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
+        main_menu_markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
         if mode == 'start':
             item1 = telebot.types.KeyboardButton("Вопрос по ИБ")
-            item2 = telebot.types.KeyboardButton("Заглушка")
-            markup.add(item1, item2)
+            item2 = telebot.types.KeyboardButton('Проверка ссылок')
+            item3 = telebot.types.KeyboardButton('Генерация пароля')
+            main_menu_markup.add(item1, item2, item3)
         elif mode == 'empty':
-            markup = telebot.types.ReplyKeyboardRemove()
-        return markup
+            main_menu_markup = telebot.types.ReplyKeyboardRemove()
+
+        return main_menu_markup
+
+    def delete_ReplyKeyboard(self, msg):
+        delete_keyboard_msg = self.send_message(msg.chat.id, 'Пожалуйста, подождите . . . ',
+                                               reply_markup=types.ReplyKeyboardRemove())
+        time.sleep(0.5)
+        self.delete_message(msg.chat.id, delete_keyboard_msg.id)
