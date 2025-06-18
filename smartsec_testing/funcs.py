@@ -11,12 +11,12 @@ from constants import TELEGRAM_BOT_TOKEN, TESTING_QUESTION_COUNT, TESTING_COMPLE
 
 # TODO добавить смайлики на сообщения
 
-# TODO вычисление максимально старого вопроса для регулярной отправки
 # FIXME (после игнора и по дефолту "Ответ записан" мгновенный, после успевания за 10 сек "Ответ записан" приходится ждать 10 сек).
 #  Возможно придётся time.sleep() вывести в многопоток или асинк
 class TGTestingBot(telebot.TeleBot):
     def __init__(self):
         super().__init__(TELEGRAM_BOT_TOKEN)
+        self.scheduler = None
 
     def start_bot(self, message: types.Message):
 
@@ -53,7 +53,9 @@ class TGTestingBot(telebot.TeleBot):
                 parse_mode='html',
                 reply_markup=to_testing_markup)
 
-    def start_testing(self, callback: telebot.types.CallbackQuery):
+    def start_testing(self, callback: telebot.types.CallbackQuery, scheduler):
+        self.scheduler = scheduler
+        self.scheduler.pause_scheduler()
         user_id = callback.from_user.id
         user_name = callback.from_user.username
         self.edit_message_reply_markup(
@@ -80,6 +82,7 @@ class TGTestingBot(telebot.TeleBot):
             user_id,
             result_text,
             parse_mode='html')
+        self.scheduler.resume_scheduler()
 
     def recalculating_statistics(self, user_id: int, user_name: str):
         with Database() as db:
