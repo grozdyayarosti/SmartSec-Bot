@@ -1,12 +1,13 @@
 import random
 import string
-
 import requests
 import telebot
 from telebot import types
 import time
+from googletrans import Translator
+from domainreputation import Client
 
-from constants import MISTRAL_API_KEY, TELEGRAM_BOT_TOKEN
+from constants import MISTRAL_API_KEY, TELEGRAM_BOT_TOKEN, DOMAINREPUTATION_API_KEY
 
 
 class TGHelpBot(telebot.TeleBot):
@@ -21,7 +22,7 @@ class TGHelpBot(telebot.TeleBot):
             parse_mode='html',
             # Вывод альтернативной клавиатуры для выбора предложенных ответов
             # (в зависимости от параметра будут предложены разные варианты в клавиатуре)
-            reply_markup=self.markUpSave('start')
+            reply_markup=self.create_markup('start')
         )
 
     def send_infosec_answer(self, message: types.Message):
@@ -34,7 +35,7 @@ class TGHelpBot(telebot.TeleBot):
         self.send_message(
             chat_id=message.chat.id,
             text=response_text,
-            reply_markup=self.markUpSave('start'),
+            reply_markup=self.create_markup('start'),
             parse_mode='MarkdownV2'
         )
 
@@ -52,6 +53,63 @@ class TGHelpBot(telebot.TeleBot):
         self.send_message(message.chat.id,
                          f'Какой пароль сгенерировать?',
                          reply_markup=kb)
+
+    def url_checking(self, message):
+        url = message.text
+        url = url.split('/')[2] if url[:4] == 'http' else url.split('/')[0]
+        wait_message = self.send_message(
+            message.chat.id,
+            "Я изучаю ссылку.\nПожалуйста, подождите . . . ",
+            parse_mode='HTML')
+        output = self.get_url_info(url)
+        print(f'{output = }')
+        self.delete_message(message.chat.id, wait_message.id)
+        self.send_message(message.chat.id,
+                          output,
+                          parse_mode='HTML',
+                          reply_markup=self.create_markup('to_home'))
+
+    @staticmethod
+    def get_url_info(url):
+        def translate(word):
+            result = Translator().translate(word, dest='ru')
+            return result.text
+        print(url)
+        try:
+            # client = Client(DOMAINREPUTATION_API_KEY)
+            # response = client.get(url)
+            # response_dict = eval(str(response))
+            # print(response_dict)
+            response_dict = {'mode': 'fast', 'reputation_score': '99.45',
+             'test_results': '[{\'test\': \'WHOIS Domain check\', \'test_code\': \'93\', \'warnings\': "[\'Owner details are publicly available\']", \'warning_codes\': \'[2009]\'}]'}
+            # 12cnd.1slo.pl excoder.club plantakiademexico.com mein-db-vorgang34.online
+
+            info_dict = dict()
+            info_dict['<b>Скорость работы</b>'] = '- ' + translate(response_dict['mode'])
+            info_dict['<b>Репутация сайта</b>'] = f"- {response_dict['reputation_score']}/100"
+            l = eval(response_dict['test_results'])
+            for elem in l:
+                warns = ['\n- ' + warn for warn in eval(elem["warnings"])]
+                key = '<b>' + translate(elem["test"]) + '</b>'
+                value = translate("".join(warns))
+                info_dict[key] = value
+
+            if not info_dict.get('Уязвимости SSL') is None:
+                info_dict['Уязвимости SSL'] = (
+                    info_dict['Уязвимости SSL'].replace(
+                        'Запись TLSA не настроена и не настроена неправильно',
+                        'Запись TLSA не настроена или настроена неправильно'))
+
+            url_info = ''
+            for k, v in info_dict.items():
+                url_info += f"{k}: \n{v}\n"
+        except Exception as _ex:
+            print(_ex)
+            url_info = 'Неверная ссылка!\nПерепроверьте её корректность, пожалуйста'
+        finally:
+            print(url_info)
+            return url_info
+
 
     @staticmethod
     def get_password(password_type):
@@ -113,19 +171,24 @@ class TGHelpBot(telebot.TeleBot):
 
         return response
 
-    # Функция, которая в зависимости от полученного параметра создаёт markup - альетарнативную клавиатуру с разными вариантами ответа
     @staticmethod
-    def markUpSave(mode: str) -> types.ReplyKeyboardMarkup:
-        main_menu_markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
+    def create_markup(mode: str):
         if mode == 'start':
+            main_menu_markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
             item1 = telebot.types.KeyboardButton("Вопрос по ИБ")
             item2 = telebot.types.KeyboardButton('Проверка ссылок')
             item3 = telebot.types.KeyboardButton('Генерация пароля')
             main_menu_markup.add(item1, item2, item3)
+            return main_menu_markup
+        elif mode == 'to_home':
+            to_home_markup = types.InlineKeyboardMarkup(row_width=1)
+            to_home_btn = types.InlineKeyboardButton(text='Вернуться к меню',
+                                                     callback_data='to_home')
+            to_home_markup.add(to_home_btn)
+            return to_home_markup
         elif mode == 'empty':
-            main_menu_markup = telebot.types.ReplyKeyboardRemove()
-
-        return main_menu_markup
+            empty_markup = telebot.types.ReplyKeyboardRemove()
+            return empty_markup
 
     def delete_ReplyKeyboard(self, msg):
         delete_keyboard_msg = self.send_message(msg.chat.id, 'Пожалуйста, подождите . . . ',

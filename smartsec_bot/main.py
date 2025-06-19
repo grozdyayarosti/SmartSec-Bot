@@ -17,9 +17,15 @@ def dialog(message):
             reply_message = bot.send_message(
                 message.chat.id,
                 "Задайте вопрос по ИБ",
-                reply_markup=bot.markUpSave('empty')
+                reply_markup=bot.create_markup('to_home')
             )
             bot.register_next_step_handler(reply_message, bot.send_infosec_answer)
+        case 'Проверка ссылок':
+            bot.delete_ReplyKeyboard(message)
+            bot.send_message(message.chat.id,
+                             'Отправьте ссылку, я её проверю',
+                             reply_markup=bot.create_markup('to_home'))
+            bot.register_next_step_handler(message, bot.url_checking)
         case 'Генерация пароля':
             bot.passwords_handling(message)
         case _:
@@ -28,20 +34,12 @@ def dialog(message):
 
 @bot.callback_query_handler(func=lambda callback: callback.data)
 def check_callback_data(callback):
-    # if callback.data == 'wrong question':
-    #     delete_ReplyKeyboard(callback.message)
-    #     bot.send_message(callback.message.chat.id, 'Переформулируйте вопрос, пожалуйста', reply_markup=to_home_markup)
-    #     bot.register_next_step_handler(callback.message, topyc_synchronization)
-    # elif callback.data == 'correct question':
-    #     question = callback.message.text[18:-5]
-    #     inl_keyb_reply = get_articles(question, connection)
-    #     bot.send_message(callback.message.chat.id, inl_keyb_reply, reply_markup=main_menu_markup)
 
     if 'password' in callback.data:
         inl_keyb_reply = bot.get_password(callback.data)
-        bot.send_message(callback.message.chat.id, inl_keyb_reply, reply_markup=bot.markUpSave('start'))
+        bot.send_message(callback.message.chat.id, inl_keyb_reply, reply_markup=bot.create_markup('start'))
 
-    elif callback.data == 'to home':
+    elif callback.data == 'to_home':
         bot.clear_step_handler_by_chat_id(chat_id=callback.message.chat.id)
         welcome(callback.message)
 
