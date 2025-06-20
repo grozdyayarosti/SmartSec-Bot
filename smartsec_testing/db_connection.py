@@ -47,10 +47,10 @@ class Database:
         """
         self.cursor.execute(query)
 
-    def check_testing_completeness(self, username: str) -> bool:
+    def check_testing_completeness(self, user_name: str) -> bool:
         query = f"""
             SELECT is_completed FROM users
-             WHERE login='{username}'
+             WHERE login='{user_name}'
         """
         self.cursor.execute(query)
         is_completed = self.cursor.fetchone()
@@ -171,14 +171,14 @@ class Database:
         answers = self.cursor.fetchall()
         return answers
 
-    def send_user_regular_results_to_db(self, username, poll_question, is_correct_answer):
+    def send_user_regular_results_to_db(self, user_name, poll_question, is_correct_answer):
         date = datetime.date.today()
         query = f'''
             INSERT INTO user_results(user_id, question_id, is_correct_answer, answer_date)
                    VALUES(
                        (SELECT id
                           FROM public.users
-                         WHERE login = '{username}'),
+                         WHERE login = '{user_name}'),
                        (SELECT id 
                           FROM public.questions 
                          WHERE text = '{poll_question}'),
