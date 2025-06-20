@@ -280,8 +280,8 @@ class Database:
                and poll_id = '{poll_id}'
         """
         self.cursor.execute(query)
-        correct_option_id, question_id = self.cursor.fetchone()
-        return correct_option_id, question_id
+        correct_answer_id, question_id = self.cursor.fetchone()
+        return correct_answer_id, question_id
 
     def clear_user_regular_questions(self, user_name: str):
         clear_data_query = f"""
