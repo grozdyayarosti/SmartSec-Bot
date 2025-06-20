@@ -1,4 +1,5 @@
 import random
+import threading
 from typing import Any
 import telebot
 from telebot import types
@@ -11,8 +12,6 @@ from constants import TELEGRAM_BOT_TOKEN, TESTING_QUESTION_COUNT, TESTING_COMPLE
 
 # TODO добавить смайлики на сообщения
 
-# FIXME (после игнора и по дефолту "Ответ записан" мгновенный, после успевания за 10 сек "Ответ записан" приходится ждать 10 сек).
-#  Возможно придётся time.sleep() вывести в многопоток или асинк
 class TGTestingBot(telebot.TeleBot):
     def __init__(self):
         super().__init__(TELEGRAM_BOT_TOKEN)
@@ -122,10 +121,11 @@ class TGTestingBot(telebot.TeleBot):
                                                            question_id,
                                                            poll_message.poll.correct_option_id,
                                                            poll_message.poll.id)
-                time.sleep(ANSWER_TO_TESTING_QUESTION_TIME)
-                is_answering = db.check_answer_existing(user_name, question_id)
-            if not is_answering:
-                self.send_empty_testing_answer(user_name, user_id, question_id)
+            # time.sleep(ANSWER_TO_TESTING_QUESTION_TIME)
+            testing_question_timer = threading.Timer(ANSWER_TO_TESTING_QUESTION_TIME,
+                                                     self.handle_testing_timeout,
+                                                     args=[user_name, user_id, question_id])
+            testing_question_timer.start()
         else:
             with Database() as db:
                 last_regular_question_data = db.get_user_regular_question_data(user_name)
@@ -150,6 +150,12 @@ class TGTestingBot(telebot.TeleBot):
                                                      question_data["question_text"],
                                                      poll_message.poll.id,
                                                      poll_message.message_id)
+
+    def handle_testing_timeout(self, user_name: str, user_id: int, question_id: int):
+        with Database() as db:
+            is_answering = db.check_answer_existing(user_name, question_id)
+        if not is_answering:
+            self.send_empty_testing_answer(user_name, user_id, question_id)
 
     def send_empty_testing_answer(self, user_name: str, user_id: int, question_id: int):
         with Database() as db:
