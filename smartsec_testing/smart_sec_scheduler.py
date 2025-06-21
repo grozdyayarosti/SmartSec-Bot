@@ -1,7 +1,3 @@
-import schedule
-
-from aiogram import Bot, Dispatcher
-from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.schedulers.background import BackgroundScheduler
 from constants import REGULAR_QUESTIONS_PERIOD
 import time
