@@ -1,10 +1,10 @@
 from apscheduler.schedulers.background import BackgroundScheduler
-from constants import REGULAR_QUESTIONS_PERIOD
 import time
 import datetime
 
-from smartsec_testing.db_connection import Database
-from smartsec_testing.funcs import TGTestingBot
+from constants import REGULAR_QUESTIONS_PERIOD
+from db_connection import Database
+from funcs import TGTestingBot
 
 
 class SmartSecScheduler:

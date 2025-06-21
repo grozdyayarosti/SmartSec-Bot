@@ -3,7 +3,7 @@ import threading
 from typing import Any
 import telebot
 from telebot import types
-import time
+# import time
 
 from db_connection import Database
 from constants import TELEGRAM_BOT_TOKEN, TESTING_QUESTION_COUNT, TESTING_COMPLETE_RESULT, \

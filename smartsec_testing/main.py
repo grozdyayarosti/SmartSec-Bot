@@ -1,15 +1,14 @@
 import datetime
 import threading
 import time
-
 import requests
 import telebot
 from flask import Flask, request
 from telebot import types
 
 from funcs import TGTestingBot
-from smartsec_testing.constants import TG_WEBHOOK_INFO_URL, WEBHOOK_URL, WEBHOOK_PORT
-from smartsec_testing.smart_sec_scheduler import SmartSecScheduler
+from constants import TG_WEBHOOK_INFO_URL, WEBHOOK_URL, WEBHOOK_PORT
+from smart_sec_scheduler import SmartSecScheduler
 
 
 bot = TGTestingBot()

@@ -5,7 +5,7 @@ from flask_admin.contrib.sqla import ModelView
 
 from models import User, Question, Answer, UserResult, QuestionAnswerMap
 from model_views import AnswerResultsView, TestingResultsView, UserView
-from flask_admin_panel.constants import PG_USER, PG_PASSWORD, PG_HOST, PG_DBNAME, FLASK_SECRET_KEY, FLASK_ADMIN_PORT
+from constants import PG_USER, PG_PASSWORD, PG_HOST, PG_DBNAME, FLASK_SECRET_KEY, FLASK_ADMIN_PORT
 
 
 class StatsView(BaseView):
