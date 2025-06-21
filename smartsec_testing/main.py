@@ -68,7 +68,7 @@ if __name__ == '__main__':
 
     # Запуск Flask-сервера
     print(f"Бот запущен на Webhook: {WEBHOOK_URL}")
-    app.run(port=WEBHOOK_PORT)
+    app.run(host='0.0.0.0', port=WEBHOOK_PORT)
 
 # https://cloudpub.ru/dashboard
 # clo.exe publish http port

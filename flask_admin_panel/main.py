@@ -47,4 +47,4 @@ admin.add_view(TestingResultsView(UserResult, db.session))
 
 
 if __name__ == '__main__':
-    app.run(port=FLASK_ADMIN_PORT)
+    app.run(host='0.0.0.0', port=FLASK_ADMIN_PORT)
