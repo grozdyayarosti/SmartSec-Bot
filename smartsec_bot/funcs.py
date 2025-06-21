@@ -111,7 +111,7 @@ class TGHelpBot(telebot.TeleBot):
     @staticmethod
     def get_password(password_type):
         if password_type == 'easy password':
-            with open('./smartsec_bot/txt_files/passwords.txt', 'r') as f:
+            with open('txt_files/passwords.txt', 'r') as f:
                 lines = f.readlines()
             password = "Слабый пароль:  " + random.choice(lines).strip()
         elif password_type == 'medium password':
