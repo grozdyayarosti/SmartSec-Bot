@@ -3,7 +3,7 @@ from flask_admin.contrib.sqla import ModelView
 
 # TODO WSL Dramatiq
 # TODO поиск в админке
-class AnswerResultsView(ModelView):
+class QuestionAnswerMapView(ModelView):
     column_list = ['question', 'answer', 'is_correct']  # Отображаемые в модели столбцы
     form_columns = ['question', 'answer', 'is_correct'] # Отображаемые в форме столбцы
     form_ajax_refs = {
@@ -21,7 +21,7 @@ class AnswerResultsView(ModelView):
         ('question', 'question.text'), ('answer', 'answer.text'), 'is_correct'
     )
 
-class TestingResultsView(ModelView):
+class UserResultsView(ModelView):
     column_list = ['login', 'question', 'is_correct_answer', 'answer_date']
     column_sortable_list = (
         'login', ('question', 'question.text'), 'is_correct_answer', 'answer_date'
