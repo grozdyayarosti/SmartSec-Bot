@@ -4,8 +4,11 @@
     <div class="container">
         <h1>Статистика</h1>
         <ul>
-            <li>Пользователей: {{ users_count }}</li>
-            <li>Вопросов: {{ questions_count }}</li>
+            <li>Всего пользователей: {{ users_count }}</li>
+            <li>Пользователи, не прошедшие тестирование: {{ users_who_not_passed_testing }}</li>
+            <li>Всего вопросов: {{ questions_count }}</li>
+            <li>Самый сложный вопрос: {{ hardest_question }}</li>
+            <li>Самый лёгкий вопрос: {{ easiest_question }}</li>
         </ul>
     </div>
 {% endblock %}
