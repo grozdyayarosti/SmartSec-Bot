@@ -1,14 +1,49 @@
 {% extends 'admin/master.html' %}
 
 {% block body %}
-    <div class="container">
-        <h1>Статистика</h1>
-        <ul>
-            <li>Всего пользователей: {{ users_count }}</li>
-            <li>Пользователи, не прошедшие тестирование: {{ users_who_not_passed_testing }}</li>
-            <li>Всего вопросов: {{ questions_count }}</li>
-            <li>Самый сложный вопрос: {{ hardest_question }}</li>
-            <li>Самый лёгкий вопрос: {{ easiest_question }}</li>
-        </ul>
+<div class="admin-stats">
+    <h1>Статистика системы</h1>
+
+    <div class="stats-grid">
+        <br>
+        <div class="stat-card">
+            <div class="stat-content">
+                <h3 class="stat-name">👥 Всего пользователей:</h3>
+                <p style="font-size: 20px;" class="stat-value"><strong>{{ users_count }}</strong></p>
+            </div>
+        </div>
+        <br>
+        <div class="stat-card stat-warning">
+            <div class="stat-content">
+                <h3 class="stat-name">❌ Не прошли тестирование:</h3>
+                <p style="font-size: 20px;" class="stat-value"><strong>
+                    <a href="/admin/user/">{{ users_who_not_passed_testing }}</a>
+                </strong></p>
+            </div>
+        </div>
+        <br>
+        <br>
+        <br>
+        <div class="stat-card">
+            <div class="stat-content">
+                <h3 class="stat-name">❓ Всего вопросов:</h3>
+                <p style="font-size: 20px;" class="stat-value"><strong>{{ questions_count }}</strong></p>
+            </div>
+        </div>
+        <br>
+        <div class="stat-card">
+            <div class="stat-content">
+                <h3 class="stat-name">🔥 Самый сложный вопрос:</h3>
+                <p style="font-size: 20px;" class="stat-value"><strong>{{ hardest_question }}</strong></p>
+            </div>
+        </div>
+        <br>
+        <div class="stat-card">
+            <div class="stat-content">
+                <h3 class="stat-name">💡 Самый лёгкий вопрос:</h3>
+                <p style="font-size: 20px;" class="stat-value"><strong>{{ easiest_question }}</strong></p>
+            </div>
+        </div>
     </div>
+</div>
 {% endblock %}
