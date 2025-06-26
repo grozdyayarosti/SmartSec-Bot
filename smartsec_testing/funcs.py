@@ -7,7 +7,7 @@ from telebot import types
 
 from db_connection import Database
 from constants import TELEGRAM_BOT_TOKEN, TESTING_QUESTION_COUNT, TESTING_COMPLETE_RESULT, \
-    ANSWER_TO_TESTING_QUESTION_TIME, REGULAR_COMPLETE_RESULT
+    ANSWER_TO_TESTING_QUESTION_TIME, REGULAR_COMPLETE_RESULT, MY_ID
 
 
 # TODO добавить смайлики на сообщения
@@ -225,6 +225,13 @@ class TGTestingBot(telebot.TeleBot):
                 self.end_testing(user_id, user_name)
         else:
             self.recalculating_statistics(user_id, user_name)
+
+    # FIXME отправлять всем пользователям
+    def testing_is_not_available(self):
+        self.send_message(
+            MY_ID,
+            "❌ Тестирование недоступно ❌"
+        )
 
     @staticmethod
     def parse_answers_data(answers_data: list[tuple[Any, ...]]) -> dict:

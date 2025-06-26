@@ -21,11 +21,6 @@ def welcome(message):
     bot.start_bot(message)
 
 
-@bot.message_handler(content_types=['text'])
-def testing_request(message):
-    bot.user_request_responding(message)
-
-
 @bot.poll_answer_handler()
 def handle_poll_answer(quiz_answer: types.PollAnswer):
     bot.check_quiz_result(quiz_answer)
@@ -53,21 +48,22 @@ def webhook():
 
 # bot.polling()
 if __name__ == '__main__':
-    print(requests.get(TG_WEBHOOK_INFO_URL).json())
-
-    # Удаляем старый Webhook и устанавливаем новый
-    bot.remove_webhook()
-    time.sleep(1)
-    bot.set_webhook(url=WEBHOOK_URL)
-
-    # Запуск планировщика в отдельном потоке
     scheduler_thread = threading.Thread(target=scheduler.start_scheduler,
                                         daemon=True)
     scheduler_thread.start()
 
-    # Запуск Flask-сервера
-    print(f"Бот запущен на Webhook: {WEBHOOK_URL}")
-    app.run(host='0.0.0.0', port=WEBHOOK_PORT)
+    if WEBHOOK_URL:
+        print(requests.get(TG_WEBHOOK_INFO_URL).json())
+        # Удаляем старый Webhook и устанавливаем новый
+        bot.remove_webhook()
+        time.sleep(1)
+        bot.set_webhook(url=WEBHOOK_URL)
+
+        # Запуск Flask-сервера
+        print(f"Бот запущен на Webhook: {WEBHOOK_URL}")
+        app.run(host='0.0.0.0', port=WEBHOOK_PORT)
+    else:
+        bot.testing_is_not_available()
 
 # https://cloudpub.ru/dashboard
 # clo.exe publish http port

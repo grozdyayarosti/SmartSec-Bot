@@ -9,12 +9,14 @@ if os.path.exists(dotenv_path):
     load_dotenv(dotenv_path)
 
 volume_path = os.path.join(os.path.dirname(__file__), '/shared/webhook_url.txt')
-if os.path.exists(volume_path):
-    with open(volume_path, "r") as f:
-        print(f"f = ")
-        WEBHOOK_URL = f.read().strip() + "/webhook"
-else:
-    WEBHOOK_URL = None
+with open(volume_path, "r+") as f:
+    url = f.read().strip()
+    print(f"url = {url}")
+    if url:
+        WEBHOOK_URL = url + "/webhook"
+        f.truncate(0)
+    else:
+        WEBHOOK_URL = None
 
 TELEGRAM_BOT_TOKEN = os.getenv('TESTING_BOT_KEY')
 PG_HOST = os.environ.get('PG_HOST')
@@ -25,6 +27,7 @@ PG_DBNAME = os.environ.get('PG_DBNAME')
 WEBHOOK_PORT = os.environ.get('WEBHOOK_PORT')
 CLOUDPUB_TOKEN = os.environ.get('CLOUDPUB_TOKEN')
 TG_WEBHOOK_INFO_URL = os.environ.get('TG_WEBHOOK_INFO_URL').format(cloudpub_token=CLOUDPUB_TOKEN)
+MY_ID = os.environ.get('MY_ID')
 
 REGULAR_QUESTIONS_PERIOD = 2*24*60*60
 REGULAR_COMPLETE_RESULT = 0.6
