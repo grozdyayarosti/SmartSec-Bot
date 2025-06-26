@@ -1,24 +1,49 @@
 version: '3.8'
 
 services:
+
+  cloudpub:
+    image: cloudpub/cloudpub
+    container_name: cloudpub
+    environment:
+      - TOKEN=${CLOUDPUB_TOKEN}
+    command: ["publish", "http", "host.docker.internal:${WEBHOOK_PORT}"]
+
+  webhook_url_extractor:
+    build:
+      context: ./webhook_url_extractor
+    container_name: webhook_url_extractor
+    volumes:
+      - "./:/host"
+      - "/var/run/docker.sock:/var/run/docker.sock"
+      - ./shared:/shared
+    group_add:
+      - "root"
+    depends_on:
+      - cloudpub
+    restart: on-failure
+
+  bot-tester:
+    build:
+      context: ./smartsec_testing
+    ports:
+      - "${WEBHOOK_PORT}:${WEBHOOK_PORT}"
+    env_file: .env
+    volumes:
+      - ./shared:/shared
+    depends_on:
+      - webhook_url_extractor
+
   admin-panel:
     build:
       context: ./flask_admin_panel
     ports:
-      - "5001:5001"
+      - "${FLASK_ADMIN_PORT}:${FLASK_ADMIN_PORT}"
     env_file: .env
     restart: unless-stopped
 
   bot-consultant:
     build:
       context: ./smartsec_bot
-    env_file: .env
-    restart: unless-stopped
-
-  bot-tester:
-    build:
-      context: ./smartsec_testing
-    ports:
-      - "5000:5000"
     env_file: .env
     restart: unless-stopped
