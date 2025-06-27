@@ -84,7 +84,7 @@ class TGTestingBot(telebot.TeleBot):
             result = round(correct_answers_count / TESTING_QUESTION_COUNT, 4)
             is_complete = result >= TESTING_COMPLETE_RESULT
             db.set_testing_completed(is_complete, user_name)
-            db.clear_user_results(user_name)
+            # db.clear_user_results(user_name)
         result_text = "Вы успешно сдали тестирование!" if is_complete else "Вы провалили тестирование!"
         self.send_message(
             user_id,
@@ -97,13 +97,16 @@ class TGTestingBot(telebot.TeleBot):
             total_count, correct_count = db.get_user_statistics(user_name)
         if total_count >= 10:
             with Database() as db:
-                is_completed = (correct_count / total_count) > REGULAR_COMPLETE_RESULT
+                is_completed = (correct_count / total_count) >= REGULAR_COMPLETE_RESULT
                 is_loss_completeness = db.checking_user_loss_completeness(is_completed, user_name)
                 if is_loss_completeness:
                     db.set_testing_completed(is_completed, user_name)
-                    self.send_message(user_id, f"⚠️⚠️⚠️\n"
-                                               f"Ваша статистика правильных ответов упала ниже 60%!\n"
-                                           f"Необходимо заново пройти тестирование")
+                    db.clear_user_regular_questions(user_name)
+                    db.clear_user_results(user_name)
+                    self.send_message(user_id,
+                        f"⚠️⚠️⚠️\n"
+                        f"Ваша статистика правильных ответов упала ниже 60% и будет сброшена!!!\n"
+                        f"Необходимо заново пройти тестирование")
 
     def send_quiz(self, user_id: int, user_name: str, is_user_testing: bool):
         with Database() as db:
