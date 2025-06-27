@@ -20,6 +20,7 @@ class StatsView(BaseView):
                           hardest_question=statistics_dict["hardest_question"],
                           easiest_question=statistics_dict["easiest_question"])
 
+
 def get_statistics_values():
     users_count = db.session.query(User).count()
     users_who_not_passed_testing = db.session.query(User.login).filter(~User.is_completed).all()

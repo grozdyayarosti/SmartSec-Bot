@@ -20,22 +20,30 @@ class TGTestingBot(telebot.TeleBot):
     def start_bot(self, message: types.Message):
         user_name = message.chat.username if not None else message.chat.id
         with Database() as db:
-            db.user_registration(user_name, message.chat.id)
+            is_registered = db.user_registration(user_name, message.chat.id)
             is_completed = db.check_testing_completeness(user_name)
             total_count, correct_count = db.get_user_statistics(user_name)
         total_percentages = 100 * correct_count / (total_count if total_count > 0 else 1)
 
-        self.send_message(
-            message.chat.id,
-            f"Я - автоматическая система тестирования <b>SmartSec Testing</b>.\n"
-            f"",
-            parse_mode='html'
-        )
+        if is_registered:
+            start_text = (f"👋🏻 Привет! Я - автоматическая система тестирования\n<b>SmartSec Testing</b>.\n\n"
+                          f"❗️ <b>Вам необходимо пройти тестирование</b>\n"
+                          f"<b>Для старта нажмите:\n<i>«Начать тестирование»</i></b>\n\n"
+                          f"Тестирование состоит из 50 вопросов.\n"
+                          f"У вас есть {ANSWER_TO_TESTING_QUESTION_TIME} секунд на ответ.\n"
+                          f"📩 Если вы прошли тестирование, то будете получать регулярные вопросы "
+                          f"от бота раз в 3 суток.\n\n"
+                          f"📊 При статистике ответов на регулярные вопросы ниже 60% "
+                          f"<b>необходимо заново пройти тестирование</b>.\n"
+                          f"Используйте команду <b>/start</b> для получения своей статистики "
+                          f"и начала тестирования.\n\n"
+                          f"Желаем успехов!")
+            self.send_message(message.chat.id, start_text, parse_mode='html')
 
         if is_completed:
             self.send_message(
                 message.chat.id,
-                f"Вы прошли тестирование!\n"
+                f"Вы уже прошли тестирование!\n"
                 f"Ожидайте регулярных вопросов...\n\n"
                 f"📊 Ваша статистика по регулярным вопросам:\n<b>✍️ {correct_count}/{total_count} "
                 f"({float(f'{total_percentages:.2f}')})%</b>",

@@ -37,15 +37,21 @@ class Database:
         users_dict = [{'user_name': user[0], 'chat_id': user[1]} for user in users]
         return users_dict
 
-    def user_registration(self, user_name: str, chat_id: int):
+    def user_registration(self, user_name: str, chat_id: int) -> bool:
         query = f"""
-        INSERT INTO users (login, chat_id, is_completed)
+        WITH inserted AS (
+            INSERT INTO users (login, chat_id, is_completed)
             SELECT '{user_name}', {chat_id}, False
             WHERE NOT EXISTS (
                 SELECT 1 FROM users WHERE login = '{user_name}'
             )
+            RETURNING 1
+        )
+        SELECT EXISTS (SELECT 1 FROM inserted) AS result
         """
         self.cursor.execute(query)
+        is_registered = self.cursor.fetchone()
+        return is_registered[0]
 
     def check_testing_completeness(self, user_name: str) -> bool:
         query = f"""
