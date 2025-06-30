@@ -37,12 +37,12 @@ def get_statistics_values():
         hardest_question_id = question_query.order_by(desc(func.count(case((UserResult.is_correct_answer == True, 1))))
                                                       ).limit(1).scalar()
         hardest_question_obj = db.session.query(Question).filter(Question.id == hardest_question_id).scalar()
-        hardest_question_str = hardest_question_obj.text if not None else '...'
+        hardest_question_str = hardest_question_obj.text if hardest_question_obj is not None else '...'
 
         easiest_question_id = question_query.order_by(func.count(case((UserResult.is_correct_answer == True, 1)))
                                                       ).limit(1).scalar()
         easiest_question_obj = db.session.query(Question).filter(Question.id == easiest_question_id).scalar()
-        easiest_question_text = easiest_question_obj.text if not None else '...'
+        easiest_question_text = easiest_question_obj.text if easiest_question_obj is not None else '...'
 
         return hardest_question_str, easiest_question_text
 
