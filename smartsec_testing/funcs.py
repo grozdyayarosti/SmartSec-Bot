@@ -18,7 +18,7 @@ class TGTestingBot(telebot.TeleBot):
         self.scheduler = None
 
     def start_bot(self, message: types.Message):
-        user_name = message.chat.username if not None else message.chat.id
+        user_name = message.chat.username if message.chat.username is not None else message.chat.id
         with Database() as db:
             is_registered = db.user_registration(user_name, message.chat.id)
             is_completed = db.check_testing_completeness(user_name)
@@ -31,9 +31,9 @@ class TGTestingBot(telebot.TeleBot):
                           f"<b>Для старта нажмите:\n<i>«Начать тестирование»</i></b>\n\n"
                           f"Тестирование состоит из 50 вопросов.\n"
                           f"У вас есть {ANSWER_TO_TESTING_QUESTION_TIME} секунд на ответ.\n"
-                          f"📩 Если вы прошли тестирование, то будете получать регулярные вопросы "
-                          f"от бота раз в 3 суток.\n\n"
-                          f"📊 При статистике ответов на регулярные вопросы ниже 60% "
+                          f"📩 Если вы прошли тестирование, то <b>будете получать регулярные вопросы "
+                          f"от бота раз в 3 суток</b>.\n\n"
+                          f"📊 Спустя месяц при статистике ответов на регулярные вопросы ниже 60% "
                           f"<b>необходимо заново пройти тестирование</b>.\n"
                           f"Используйте команду <b>/start</b> для получения своей статистики "
                           f"и начала тестирования.\n\n"
@@ -64,7 +64,7 @@ class TGTestingBot(telebot.TeleBot):
         self.scheduler = scheduler
         self.scheduler.pause_scheduler()
         user_id = callback.from_user.id
-        user_name = callback.from_user.username if not None else user_id
+        user_name = callback.from_user.username if callback.from_user.username is not None else user_id
 
         self.edit_message_reply_markup(
             chat_id=callback.message.chat.id,
@@ -202,7 +202,7 @@ class TGTestingBot(telebot.TeleBot):
 
     def check_quiz_result(self, quiz_answer: types.PollAnswer):
         user_id = quiz_answer.user.id
-        user_name = quiz_answer.user.username if not None else user_id
+        user_name = quiz_answer.user.username if quiz_answer.user.username is not None else user_id
         user_answer_id = quiz_answer.option_ids[0]
 
         with Database() as db:
